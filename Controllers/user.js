@@ -12,8 +12,6 @@ let handleUserSignup = async (req, res) => {
         }
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        console.log('Email:', process.env.EMAIL);
-        console.log('Email Password:', process.env.EMAIL_PASSWORD ? '****' : 'Not set');
 
         // Set up Nodemailer transporter
         const transporter = nodemailer.createTransport({
