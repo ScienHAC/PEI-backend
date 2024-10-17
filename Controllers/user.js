@@ -42,7 +42,7 @@ let handleUserLogin = async (req, res) => {
         const token = setUser(user);
 
         res.cookie('_auth_token_pei', token, {
-            httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 7 * 24 * 60 * 60 * 1000
+            httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'None', maxAge: 7 * 24 * 60 * 60 * 1000
         });
         const { password: _, ...userData } = user.toObject();
         console.log("Login Successfully");
