@@ -11,7 +11,9 @@ let handleUserSignup = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUserDoc = await User.create({ name, email, password: hashedPassword, contact });
         const token = setUser(newUserDoc);
-        res.cookie('_auth_token_pei', token, { httpOnly: true });
+        res.cookie('_auth_token_pei', token, {
+            httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000
+        });
         console.log(newUserDoc);
         return res.status(201).json({ message: 'User created successfully', user: newUserDoc });
     } catch (error) {
@@ -39,8 +41,9 @@ let handleUserLogin = async (req, res) => {
 
         const token = setUser(user);
 
-        res.cookie('_auth_token_pei', token, { httpOnly: true });
-
+        res.cookie('_auth_token_pei', token, {
+            httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000
+        });
         const { password: _, ...userData } = user.toObject();
         console.log("Login Successfully");
         return res.status(200).json({ message: 'Login successful', user: userData });

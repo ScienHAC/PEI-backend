@@ -4,7 +4,10 @@ const userRoute = require('./Routes/user');
 const cors = require('cors');
 require('dotenv').config();
 const app = express();
-app.use(cors());
+app.use(cors({
+    origin: process.env.Client_URL,
+    credentials: true
+}));
 app.use(cookieParser());
 app.use(express.json());
 app.use("/auth", userRoute);
