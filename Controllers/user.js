@@ -48,7 +48,6 @@ let handleUserLogin = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required.' });
         }
-
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password.' });
@@ -59,21 +58,39 @@ let handleUserLogin = async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password.' });
         }
 
-        const token = setUser(user);
+        // Generate a 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        res.cookie('_auth_token_pei', token, {
-            httpOnly: true, secure: true, sameSite: 'None', maxAge: 7 * 24 * 60 * 60 * 1000 //localhost put secure true is samesite none
+        // Set up Nodemailer transporter
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD,
+            },
         });
-        const { password: _, ...userData } = user.toObject();
-        console.log("Login Successfully");
-        return res.status(200).json({ message: 'Login successful', user: userData });
+        // Store OTP and user data temporarily in the OTP collection
+        await OTP.create({ email, otp });
+
+        // Send OTP email
+        await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Your OTP Code',
+            text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
+        });
+
+        res.status(200).json({ message: 'Login successful. Please verify your OTP.' });
+
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 }
 
-let handleUserOtp = async (req, res) => {
+let handleUserOtpSignup = async (req, res) => {
     await User.init();
     const { otp } = req.body;
     const { name, email, password, contact } = req.tempUser;
@@ -107,4 +124,32 @@ let handleUserOtp = async (req, res) => {
     }
 }
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtp }; 
+
+
+let handleUserOtpLogin = async (req, res) => {
+    const { otp } = req.body;
+    const { email } = req.Client_User;
+    try {
+        const otpRecord = await OTP.findOne({ email, otp });
+        if (!otpRecord) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        }
+        const user = await User.findOne({ email });
+        console.log("Login Successfully");
+
+        await OTP.deleteOne({ _id: otpRecord._id });
+
+        const token = setUser(user);
+
+        res.cookie('_auth_token_pei', token, {
+            httpOnly: true, secure: true, sameSite: 'None', maxAge: 7 * 24 * 60 * 60 * 1000 //localhost put secure true is samesite none
+        });
+
+        return res.status(200).json({ message: 'OTP verified! User Logged successfully.' });
+    } catch (error) {
+        console.error('OTP verification error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin }; 
