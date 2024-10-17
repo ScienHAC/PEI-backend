@@ -3,6 +3,7 @@ const { setUser } = require('../Services/auth');
 const bcrypt = require('bcrypt');
 let handleUserSignup = async (req, res) => {
     try {
+        await User.init();
         const { name, email, password, contact } = req.body;
         if (!name || !email || !password || !contact) {
             return res.status(400).json({ message: 'All fields are required.' });
