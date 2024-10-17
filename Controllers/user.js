@@ -42,6 +42,7 @@ let handleUserLogin = async (req, res) => {
         res.cookie('_auth_token_pei', token, { httpOnly: true });
 
         const { password: _, ...userData } = user.toObject();
+        console.log("Login Successfully");
         return res.status(200).json({ message: 'Login successful', user: userData });
     } catch (error) {
         console.error('Login error:', error);
