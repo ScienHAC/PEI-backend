@@ -12,7 +12,7 @@ let handleUserSignup = async (req, res) => {
         const newUserDoc = await User.create({ name, email, password: hashedPassword, contact });
         const token = setUser(newUserDoc);
         res.cookie('_auth_token_pei', token, {
-            httpOnly: true, secure: process.env.NODE_ENV === 'production', domain: process.env.HOST_COOKIE, maxAge: 7 * 24 * 60 * 60 * 1000
+            httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000
         });
         console.log(newUserDoc);
         return res.status(201).json({ message: 'User created successfully', user: newUserDoc });
