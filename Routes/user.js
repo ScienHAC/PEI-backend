@@ -1,6 +1,6 @@
 const express = require('express');
 const OTP = require('../Models/otp'); // Import the OTP model
-const { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus } = require('../Controllers/user');
+const { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword } = require('../Controllers/user');
 const signupMiddleware = require('../Middleware/signupMiddleware');
 const loginMiddleware = require('../Middleware/loginMiddleware');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
@@ -18,8 +18,13 @@ router.get("/logout", handleUserLogout);
 router.get("/status", restrictToLoggedInUserOnly, handleUserStatus);
 // check admin status
 router.get("/admin", restrictToLoggedInUserOnly, restrictToAdmin, handleAdminStatus);
-// Verify OTP
+// Verify OTP Signup
 router.post('/verify-otp-signup', signupMiddleware, handleUserOtpSignup);
+// Verify OTP Login
 router.post('/verify-otp-login', loginMiddleware, handleUserOtpLogin);
+// Forgot Password - Send OTP
+router.post('/forgot-password', handleUserForgotPassword);
+// Reset Password
+router.post('/reset-password', handleUserResetPassword);
 
 module.exports = router;

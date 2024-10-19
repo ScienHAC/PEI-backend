@@ -165,4 +165,74 @@ let handleAdminStatus = async (req, res) => {
     res.send(`Welcome Admin, ${req.user.email}!`);
 }
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus }; 
+
+let handleUserForgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // Check if user exists
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Generate a 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Set up Nodemailer transporter
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        // Store OTP in the OTP collection
+        await OTP.create({ email, otp });
+
+        // Send OTP email
+        await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Your Password Reset OTP',
+            text: `Your OTP code for password reset is ${otp}. It is valid for 10 minutes.`,
+        });
+
+        return res.status(200).json({ message: 'OTP sent to your email!' });
+    } catch (error) {
+        console.error('Forgot Password error:', error);
+        res.status(500).json({ message: 'Failed to send OTP.' });
+    }
+};
+
+let handleUserResetPassword = async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+
+    try {
+        // Verify OTP
+        const otpRecord = await OTP.findOne({ email, otp });
+        if (!otpRecord) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update user password
+        await User.updateOne({ email }, { password: hashedPassword });
+
+        // Delete OTP record
+        await OTP.deleteOne({ _id: otpRecord._id });
+
+        return res.status(200).json({ message: 'Password reset successful!' });
+    } catch (error) {
+        console.error('Reset Password error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword }; 
