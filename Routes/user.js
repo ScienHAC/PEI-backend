@@ -5,6 +5,9 @@ const signupMiddleware = require('../Middleware/signupMiddleware');
 const loginMiddleware = require('../Middleware/loginMiddleware');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
 const restrictToAdmin = require('../Middleware/adminMiddleware');
+const multer = require('multer');
+const path = require('path');
+const { handleResearchPaperSubmission } = require('../Controllers/user');
 const { setUser } = require('../Services/auth');
 const router = express.Router();
 
@@ -26,5 +29,22 @@ router.post('/verify-otp-login', loginMiddleware, handleUserOtpLogin);
 router.post('/forgot-password', handleUserForgotPassword);
 // Reset Password
 router.post('/reset-password', handleUserResetPassword);
+//file upload
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const extension = path.extname(file.originalname);
+        cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
+    }
+});
+
+const upload = multer({ storage });
+
+// Submit Research Paper
+router.post('/submit-paper', upload.single('file'), restrictToLoggedInUserOnly, handleResearchPaperSubmission);
+
 
 module.exports = router;

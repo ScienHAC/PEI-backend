@@ -1,8 +1,10 @@
 const User = require('../Models/user');
 const { setUser } = require('../Services/auth');
 const nodemailer = require('nodemailer');
-const OTP = require('../Models/otp'); // Import the OTP model
+const OTP = require('../Models/otp');
 const bcrypt = require('bcrypt');
+const ResearchPaper = require('../Models/ResearchPaper');
+const path = require('path');
 
 let handleUserSignup = async (req, res) => {
     try {
@@ -235,4 +237,37 @@ let handleUserResetPassword = async (req, res) => {
 };
 
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword }; 
+// Handle file upload and research paper submission
+const handleResearchPaperSubmission = async (req, res) => {
+    const { title, author, contactNumber, abstract, articleType, journal, country } = req.body;
+    const userId = req.user.id;
+    const email = req.user.email;
+    if (!userId) {
+        return res.status(400).json({ message: 'User not authenticated.' });
+    }
+
+    try {
+        const researchPaper = await ResearchPaper.create({
+            title,
+            author,
+            contactNumber,
+            email,
+            abstract,
+            articleType,
+            journal,
+            country,
+            userId,
+            filePath: req.file.path
+        });
+
+        console.log('Research paper submitted:', researchPaper);
+        return res.status(201).json({ message: 'Research paper submitted successfully!', researchPaper });
+    } catch (error) {
+        console.error('Research paper submission error:', error);
+        res.status(500).json({ message: 'Failed to submit the research paper.' });
+    }
+};
+
+
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission }; 
