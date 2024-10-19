@@ -152,4 +152,8 @@ let handleUserOtpLogin = async (req, res) => {
     }
 }
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin }; 
+let handleUserStatus = async (req, res) => {
+    res.json({ user: req.user, isAuthenticated: true });
+}
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus }; 

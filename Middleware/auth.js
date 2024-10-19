@@ -2,7 +2,7 @@ const { getUser } = require('../Services/auth');
 
 // **Authentication Middleware**
 function restrictToLoggedInUserOnly(req, res, next) {
-    const token = req.cookies._auth_token_pei; // Retrieve token from cookies
+    const token = req.cookies._auth_token_pei;
 
     if (!token) {
         return res.status(401).json({ message: 'Unauthorized: No token provided' });
