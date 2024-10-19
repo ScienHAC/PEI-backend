@@ -6,7 +6,7 @@ require('dotenv').config();
 // **Generate JWT Token**
 function setUser(user) {
     return jwt.sign(
-        { id: user._id, name: user.name, email: user.email },
+        { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin },
         SECRET_KEY
     );
 }

@@ -161,4 +161,8 @@ let handleUserLogout = async (req, res) => {
     res.json({ message: 'Logged out successfully' });
 }
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout }; 
+let handleAdminStatus = async (req, res) => {
+    res.send(`Welcome Admin, ${req.user.email}!`);
+}
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus }; 

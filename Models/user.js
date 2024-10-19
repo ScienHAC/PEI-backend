@@ -17,6 +17,10 @@ const userScehma = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    isAdmin: {
+        type: Boolean,
+        default: false
+    }, // Admin flag
 }, { timestamps: true });
 
 const User = mongoose.model('Client', userScehma);
