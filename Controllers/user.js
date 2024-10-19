@@ -268,6 +268,20 @@ const handleResearchPaperSubmission = async (req, res) => {
     }
 };
 
+// Fetch research papers for a specific user
+const getUserResearchPapers = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const papers = await ResearchPaper.find({ userId });
+
+        console.log('Fetched papers:', papers); // Log for debugging
+        res.json(papers);
+    } catch (error) {
+        console.error('Error fetching research papers:', error);
+        res.status(500).json({ error: 'Failed to fetch research papers' });
+    }
+};
 
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission }; 
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers }; 
