@@ -156,4 +156,9 @@ let handleUserStatus = async (req, res) => {
     res.json({ user: req.user, isAuthenticated: true });
 }
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus }; 
+let handleUserLogout = async (req, res) => {
+    res.clearCookie('_auth_token_pei');
+    res.json({ message: 'Logged out successfully' });
+}
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout }; 

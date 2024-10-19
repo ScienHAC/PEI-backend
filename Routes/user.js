@@ -1,6 +1,6 @@
 const express = require('express');
 const OTP = require('../Models/otp'); // Import the OTP model
-const { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus } = require('../Controllers/user');
+const { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout } = require('../Controllers/user');
 const signupMiddleware = require('../Middleware/signupMiddleware');
 const loginMiddleware = require('../Middleware/loginMiddleware');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
@@ -11,6 +11,8 @@ const router = express.Router();
 router.post("/signup", handleUserSignup);
 // Login
 router.post("/login", handleUserLogin);
+// Logout
+router.get("/logout", handleUserLogout);
 // Check user status
 router.get("/status", restrictToLoggedInUserOnly, handleUserStatus);
 
