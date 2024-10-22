@@ -283,5 +283,37 @@ const getUserResearchPapers = async (req, res) => {
 };
 
 
+// Update user's name
+let handleUpdateUserName = async (req, res) => {
+    const userId = req.user.id; // Assuming you extract user ID from the JWT in middleware
+    const { newName } = req.body;
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers }; 
+    try {
+        // Update user's name in the database
+        const updatedUser = await User.findByIdAndUpdate(userId, { name: newName }, { new: true });
+
+        // Check if the user was found and updated
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // Refresh the authentication token with the updated user's info
+        const token = setUser(updatedUser);
+
+        // Set the updated cookie
+        res.cookie('_auth_token_pei', token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // Expire in 7 days
+        });
+
+        res.status(200).json({ message: 'User name updated successfully.', user: updatedUser });
+    } catch (error) {
+        console.error('Error updating user name:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUserName }; 
