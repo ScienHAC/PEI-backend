@@ -283,16 +283,22 @@ const getUserResearchPapers = async (req, res) => {
 };
 
 
-// Update user's name
-let handleUpdateUserName = async (req, res) => {
-    const userId = req.user.id; // Assuming you extract user ID from the JWT in middleware
-    const { newName } = req.body;
+// Update user's details
+const handleUpdateUser = async (req, res) => {
+    const userId = req.user.id;
+    const { newName, newContact } = req.body;
 
     try {
-        // Update user's name in the database
-        const updatedUser = await User.findByIdAndUpdate(userId, { name: newName }, { new: true });
+        // Find and update user's name and/or contact
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                ...(newName && { name: newName }),
+                ...(newContact && { contact: newContact })
+            },
+            { new: true }
+        );
 
-        // Check if the user was found and updated
         if (!updatedUser) {
             return res.status(404).json({ message: 'User not found.' });
         }
@@ -305,15 +311,16 @@ let handleUpdateUserName = async (req, res) => {
             httpOnly: true,
             secure: true,
             sameSite: 'None',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // Expire in 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
         });
 
-        res.status(200).json({ message: 'User name updated successfully.', user: updatedUser });
+        res.status(200).json({ message: 'User details updated successfully.', user: updatedUser });
     } catch (error) {
-        console.error('Error updating user name:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error('Error updating user details:', error);
+        res.status(500).json({ message: 'Internal server error.' });
     }
 };
 
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUserName }; 
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser }; 
