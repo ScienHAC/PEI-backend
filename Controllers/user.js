@@ -282,7 +282,6 @@ const getUserResearchPapers = async (req, res) => {
         const userId = req.user.id;
         const papers = await ResearchPaper.find({ userId });
 
-        console.log('Fetched papers:', papers); // Log for debugging
         res.json(papers);
     } catch (error) {
         console.error('Error fetching research papers:', error);
