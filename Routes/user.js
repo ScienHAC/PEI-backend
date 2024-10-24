@@ -32,7 +32,11 @@ router.post('/reset-password', handleUserResetPassword);
 //file upload
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        if (file.mimetype === 'application/pdf') {
+            cb(null, 'uploads/pdf/');
+        } else {
+            cb(null, 'uploads/');
+        }
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -42,6 +46,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
 
 // Submit Research Paper
 router.post('/submit-paper', upload.single('file'), restrictToLoggedInUserOnly, handleResearchPaperSubmission);

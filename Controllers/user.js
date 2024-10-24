@@ -242,11 +242,18 @@ const handleResearchPaperSubmission = async (req, res) => {
     const { title, author, contactNumber, abstract, articleType, journal, country } = req.body;
     const userId = req.user.id;
     const email = req.user.email;
+
     if (!userId) {
         return res.status(400).json({ message: 'User not authenticated.' });
     }
 
     try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'PDF file is required.' });
+        }
+
+        const fileName = req.file.filename;
+
         const researchPaper = await ResearchPaper.create({
             title,
             author,
@@ -257,7 +264,7 @@ const handleResearchPaperSubmission = async (req, res) => {
             journal,
             country,
             userId,
-            filePath: req.file.path
+            filePath: `pdf/${fileName}`
         });
 
         console.log('Research paper submitted:', researchPaper);
@@ -267,6 +274,7 @@ const handleResearchPaperSubmission = async (req, res) => {
         res.status(500).json({ message: 'Failed to submit the research paper.' });
     }
 };
+
 
 // Fetch research papers for a specific user
 const getUserResearchPapers = async (req, res) => {
@@ -321,6 +329,38 @@ const handleUpdateUser = async (req, res) => {
     }
 };
 
+// Update a research paper by its ID
+async function updateResearchPaper(req, res) {
+    try {
+        const { id } = req.params;
+        const updateData = {};
+
+        if (req.body.title) {
+            updateData.title = req.body.title;
+        }
+        if (req.body.abstract) {
+            updateData.abstract = req.body.abstract;
+        }
+
+        // Check if a thumbnail file was uploaded
+        if (req.file) {
+            updateData.thumbnail = req.file.filename; // Save filename in the database
+        }
+
+        const updatedPaper = await ResearchPaper.findByIdAndUpdate(id, updateData, { new: true });
+
+        if (!updatedPaper) {
+            return res.status(404).json({ message: "Research paper not found" });
+        }
+
+        res.status(200).json(updatedPaper);
+    } catch (error) {
+        console.error('Error updating research paper:', error);
+        res.status(500).json({ message: 'Error updating research paper', error });
+    }
+}
 
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser }; 
+
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper }; 

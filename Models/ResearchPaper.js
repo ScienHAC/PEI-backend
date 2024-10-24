@@ -11,6 +11,7 @@ const researchPaperSchema = new mongoose.Schema({
     country: { type: String, required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
     filePath: { type: String, required: true },
+    thumbnail: { type: String, default: '' },  // Add the thumbnail field here
     status: { type: String, default: 'under review' },
 }, { timestamps: true });
 
