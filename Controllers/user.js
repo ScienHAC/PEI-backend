@@ -254,6 +254,38 @@ const handleResearchPaperSubmission = async (req, res) => {
 
         const fileName = req.file.filename;
 
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+                user: process.env.EMAIL,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: process.env.AdminEmail,
+            subject: `Research Paper Submitted Successfully`,
+            text: `Dear Admin,\n\nResearch paper titled "${title}" published by "${email}" has been successfully submitted and marked for review. You can view the research paper in the Admin panel.\n\nThank you!`,
+            attachments: [
+                {
+                    filename: `${fileName}`,
+                    path: `${process.env.BackendUrl}/api/uploads/pdf/${fileName}`,
+                    contentType: 'application/pdf'
+                }
+            ]
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
+
         const researchPaper = await ResearchPaper.create({
             title,
             author,
@@ -266,6 +298,7 @@ const handleResearchPaperSubmission = async (req, res) => {
             userId,
             filePath: `pdf/${fileName}`
         });
+
 
         console.log('Research paper submitted:', researchPaper);
         return res.status(201).json({ message: 'Research paper submitted successfully!', researchPaper });
