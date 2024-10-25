@@ -2,7 +2,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const userRoute = require('./Routes/user');
 const fileRoute = require('./Routes/fileRoutes');
-const researchRoutes = require('./Routes/Research');
+const researchRoutes = require('./Routes/researchRoutes');
 const cors = require('cors');
 require('dotenv').config();
 const app = express();

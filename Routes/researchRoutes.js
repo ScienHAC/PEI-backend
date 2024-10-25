@@ -4,6 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { updateResearchPaper } = require('../Controllers/user');
+const { updatePaperStatus, getPapersByDate } = require('../Controllers/researchPaperController');
 
 // Set the directory path for thumbnails
 const thumbnailDir = path.join(__dirname, '..', 'uploads', 'thumbnails');
@@ -38,5 +39,11 @@ router.get('/uploads/thumbnails/:filename', (req, res) => {
 
 // Endpoint to handle thumbnail uploads
 router.put('/publish/research/:id', upload.single('thumbnail'), updateResearchPaper);
+
+// Update research paper status (reviewed or rejected)
+router.put('/research/status/:id', updatePaperStatus);
+
+// Get research papers by date with pagination and status filter
+router.get('/research/by-date', getPapersByDate);
 
 module.exports = router;

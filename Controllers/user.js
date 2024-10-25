@@ -359,7 +359,29 @@ async function updateResearchPaper(req, res) {
     }
 }
 
+async function fetchAllResearchPaper(req, res) {
+    const { page = 1, limit = 5, status } = req.query;
+
+    try {
+        const filter = status ? { status } : {};
+
+        const papers = await ResearchPaper.find(filter)
+            .sort({ createdAt: -1 })
+            .limit(Number(limit))
+            .skip((page - 1) * limit)
+            .exec();
+
+        const totalPapers = await ResearchPaper.countDocuments(filter);
+        res.json({
+            papers,
+            totalPages: Math.ceil(totalPapers / limit),
+            currentPage: Number(page),
+        });
+    } catch (error) {
+        console.error('Error fetching papers:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+}
 
 
-
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper }; 
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper }; 
