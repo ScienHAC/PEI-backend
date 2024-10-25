@@ -63,10 +63,25 @@ exports.getPapersByDate = async (req, res) => {
             .skip(parseInt(skip))
             .limit(parseInt(limit));
 
-        res.status(200).json({ papers, total: totalPapers });
+        // Additional counts for each status
+        const totalReviewed = await ResearchPaper.countDocuments({ status: 'reviewed' });
+        const totalRejected = await ResearchPaper.countDocuments({ status: 'rejected' });
+        const totalUnderReview = await ResearchPaper.countDocuments({ status: 'under review' });
+
+        res.status(200).json({
+            papers,
+            total: totalPapers,
+            reviewCounts: {
+                total: totalPapers,
+                reviewed: totalReviewed,
+                rejected: totalRejected,
+                underReview: totalUnderReview
+            }
+        });
     } catch (error) {
         console.error('Error fetching papers by date:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
+
 
