@@ -64,6 +64,7 @@ exports.getPapersByDate = async (req, res) => {
             .limit(parseInt(limit));
 
         // Additional counts for each status
+        const allPapers = await ResearchPaper.countDocuments('all');
         const totalReviewed = await ResearchPaper.countDocuments({ status: 'reviewed' });
         const totalRejected = await ResearchPaper.countDocuments({ status: 'rejected' });
         const totalUnderReview = await ResearchPaper.countDocuments({ status: 'under review' });
@@ -72,7 +73,7 @@ exports.getPapersByDate = async (req, res) => {
             papers,
             total: totalPapers,
             reviewCounts: {
-                total: totalPapers,
+                total: allPapers,
                 reviewed: totalReviewed,
                 rejected: totalRejected,
                 underReview: totalUnderReview
