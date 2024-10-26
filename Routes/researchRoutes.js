@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { updateResearchPaper } = require('../Controllers/user');
 const { updatePaperStatus, getPapersByDate } = require('../Controllers/researchPaperController');
+const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
+const restrictToAdmin = require('../Middleware/adminMiddleware');
 
 // Set the directory path for thumbnails
 const thumbnailDir = path.join(__dirname, '..', 'uploads', 'thumbnails');
@@ -41,9 +43,9 @@ router.get('/uploads/thumbnails/:filename', (req, res) => {
 router.put('/publish/research/:id', upload.single('thumbnail'), updateResearchPaper);
 
 // Update research paper status (reviewed or rejected)
-router.put('/research/status/:id', updatePaperStatus);
+router.put('/research/status/:id', restrictToLoggedInUserOnly, restrictToAdmin, updatePaperStatus);
 
 // Get research papers by date with pagination and status filter
-router.get('/research/by-date', getPapersByDate);
+router.get('/research/by-date', restrictToLoggedInUserOnly, restrictToAdmin, getPapersByDate);
 
 module.exports = router;
