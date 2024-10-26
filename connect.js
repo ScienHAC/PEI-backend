@@ -1,14 +1,14 @@
 const mongoose = require("mongoose");
 
-mongoose.set("strictQuery", true);  // Enable strict query mode
+mongoose.set("strictQuery", true);
 
 async function connectToMongoDB(MONGO_URI) {
     try {
         await mongoose.connect(MONGO_URI, {
             serverApi: {
-                version: "1",  // Server API version (if needed)
-                strict: true,   // Strict server behavior
-                deprecationErrors: true,  // Throw errors for deprecated features
+                version: "1",
+                strict: true,
+                deprecationErrors: true,
             },
             dbName: "PEI",
         });
