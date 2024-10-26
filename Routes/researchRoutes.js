@@ -4,7 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { updateResearchPaper } = require('../Controllers/user');
-const { updatePaperStatus, getPapersByDate } = require('../Controllers/researchPaperController');
+const { updatePaperStatus, getPapersByDate, getPapersById } = require('../Controllers/researchPaperController');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
 const restrictToAdmin = require('../Middleware/adminMiddleware');
 
@@ -47,5 +47,8 @@ router.put('/research/status/:id', restrictToLoggedInUserOnly, restrictToAdmin, 
 
 // Get research papers by date with pagination and status filter
 router.get('/research/by-date', restrictToLoggedInUserOnly, restrictToAdmin, getPapersByDate);
+
+// GET /api/papers/:paperId
+router.put('/papers/:paperId', restrictToLoggedInUserOnly, getPapersById);
 
 module.exports = router;

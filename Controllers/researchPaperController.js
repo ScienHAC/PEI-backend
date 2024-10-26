@@ -83,4 +83,28 @@ exports.getPapersByDate = async (req, res) => {
     }
 };
 
+// Function to get user research paper details by ID
+exports.getPapersById = async (req, res) => {
+    const paperId = req.params.paperId;
+    try {
+        let paper;
+        // Check if the user is an admin
+        if (req.user.isAdmin) {
+            // Admin can see all papers
+            paper = await ResearchPaper.findById(paperId);
+        } else {
+            // Regular user can only see their own papers
+            paper = await ResearchPaper.findOne({ _id: paperId, author: req.user._id });
+        }
+
+        if (!paper) {
+            return res.status(404).json({ message: 'Paper not found' });
+        }
+
+        res.json(paper);
+    } catch (error) {
+        console.error('Error fetching paper:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 
