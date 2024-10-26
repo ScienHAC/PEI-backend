@@ -389,4 +389,34 @@ async function fetchAllResearchPaper(req, res) {
 }
 
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper }; 
+//contact us
+let handleContactUs = async (req, res) => {
+    try {
+        const { name, email, phone, subject, message } = req.body;
+        if (!name || !email || !phone || !subject || !message) {
+            return res.status(400).json({ message: 'All fields are required.' });
+        }
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: process.env.AdminEmail,
+            subject: `Contact Us Form Submission - ${subject}`,
+            text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\n\n${message}`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending email:', error);
+            } else {
+                console.log('Email sent:', info.response);
+            }
+        });
+
+        res.status(200).json({ message: 'Message sent successfully!' });
+    } catch (error) {
+        console.error('Contact Us error:', error);
+        res.status(500).json({ message: 'Failed to send message.' });
+    }
+};
+
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper, handleContactUs }; 
