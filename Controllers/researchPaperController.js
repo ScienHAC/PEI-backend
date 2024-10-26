@@ -1,21 +1,21 @@
-// controllers/researchPaperController.js
-
 const ResearchPaper = require('../Models/ResearchPaper');
 const nodemailer = require('nodemailer');
 
 // Setup nodemailer transporter
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.smtpHost,
+    port: 587,
+    secure: false,
     auth: {
-        user: process.env.EMAIL, // Your email
-        pass: process.env.EMAIL_PASSWORD // Your email password
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASSWORD
     }
 });
 
 // Function to update research paper status
 exports.updatePaperStatus = async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body; // Expect status to be 'reviewed' or 'rejected'
+    const { status } = req.body;
 
     try {
         const updatedPaper = await ResearchPaper.findByIdAndUpdate(id, { status }, { new: true });
@@ -51,10 +51,8 @@ exports.getPapersByDate = async (req, res) => {
     const { limit = 5, skip = 0, status = 'all' } = req.query;
 
     try {
-        // Construct the filter based on the status query
         const filter = status === 'all' ? {} : { status };
 
-        // Get the total count of filtered documents
         const totalPapers = await ResearchPaper.countDocuments(filter);
 
         // Fetch paginated and sorted papers based on filter

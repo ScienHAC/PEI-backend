@@ -6,6 +6,19 @@ const bcrypt = require('bcrypt');
 const ResearchPaper = require('../Models/ResearchPaper');
 const path = require('path');
 
+
+// Set up Nodemailer transporter
+const transporter = nodemailer.createTransport({
+    host: process.env.smtpHost,
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASSWORD,
+    },
+});
+
+
 let handleUserSignup = async (req, res) => {
     try {
         const { name, email, password, contact } = req.body;
@@ -15,16 +28,6 @@ let handleUserSignup = async (req, res) => {
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Set up Nodemailer transporter
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD,
-            },
-        });
         // Store OTP and user data temporarily in the OTP collection
         await OTP.create({ email, otp });
 
@@ -63,16 +66,6 @@ let handleUserLogin = async (req, res) => {
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Set up Nodemailer transporter
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD,
-            },
-        });
         // Store OTP and user data temporarily in the OTP collection
         await OTP.create({ email, otp });
 
@@ -181,17 +174,6 @@ let handleUserForgotPassword = async (req, res) => {
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Set up Nodemailer transporter
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD,
-            },
-        });
-
         // Store OTP in the OTP collection
         await OTP.create({ email, otp });
 
@@ -253,16 +235,6 @@ const handleResearchPaperSubmission = async (req, res) => {
         }
 
         const fileName = req.file.filename;
-
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL,
-                pass: process.env.EMAIL_PASSWORD,
-            },
-        });
 
         const mailOptions = {
             from: process.env.EMAIL,
@@ -376,7 +348,7 @@ async function updateResearchPaper(req, res) {
 
         // Check if a thumbnail file was uploaded
         if (req.file) {
-            updateData.thumbnail = req.file.filename; // Save filename in the database
+            updateData.thumbnail = req.file.filename;
         }
 
         const updatedPaper = await ResearchPaper.findByIdAndUpdate(id, updateData, { new: true });
