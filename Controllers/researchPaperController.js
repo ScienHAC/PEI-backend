@@ -94,7 +94,7 @@ exports.getPapersById = async (req, res) => {
             paper = await ResearchPaper.findById(paperId);
         } else {
             // Regular user can only see their own papers
-            paper = await ResearchPaper.findOne({ _id: paperId, author: req.user._id });
+            paper = await ResearchPaper.findOne({ _id: paperId, email: req.user.email });
         }
 
         if (!paper) {
