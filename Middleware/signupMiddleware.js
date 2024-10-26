@@ -15,7 +15,7 @@ const signupMiddleware = async (req, res, next) => {
 
         // Attach the user data to req.tempUser
         req.tempUser = { name, email, password: hashedPassword, contact };
-        next(); // Proceed to the next middleware or route handler
+        next();
     } catch (error) {
         console.error('Signup error:', error);
         res.status(500).json({ message: 'Internal server error' });

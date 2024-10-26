@@ -12,7 +12,7 @@ const loginMiddleware = async (req, res, next) => {
 
         // Attach the user data to req.tempUser
         req.Client_User = { email, password };
-        next(); // Proceed to the next middleware or route handler
+        next();
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Internal server error' });
