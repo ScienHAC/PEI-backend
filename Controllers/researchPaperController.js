@@ -108,3 +108,87 @@ exports.getPapersById = async (req, res) => {
     }
 };
 
+// Fetch distinct years with submitted documents
+exports.getArchivesByYear = async (req, res) => {
+    try {
+        const years = await ResearchPaper.aggregate([
+            { $group: { _id: { $year: "$createdAt" } } },
+            { $sort: { "_id": -1 } }
+        ]).exec();
+        res.json({ years: years.map(y => y._id) });
+    } catch (error) {
+        console.error("Error fetching years:", error);
+        res.status(500).send("Server error");
+    }
+};
+
+
+// Fetch volumes for a given year with up to 20 documents per volume
+exports.getPapersByVolume = async (req, res) => {
+    const PAPERS_PER_VOLUME = 20;
+
+    try {
+        const yearsData = await ResearchPaper.aggregate([
+            { $group: { _id: { $year: "$createdAt" } } },
+            { $sort: { "_id": 1 } }
+        ]);
+
+        let cumulativeVolume = 1;
+        const volumeData = {};
+
+        for (const yearObj of yearsData) {
+            const year = yearObj._id;
+
+            const volumes = await ResearchPaper.aggregate([
+                {
+                    $match: {
+                        createdAt: {
+                            $gte: new Date(`${year}-01-01`),
+                            $lt: new Date(`${year + 1}-01-01`)
+                        },
+                        status: 'reviewed'
+                    }
+                },
+                {
+                    $group: {
+                        _id: {
+                            $switch: {
+                                branches: [
+                                    { case: { $lte: [{ $month: "$createdAt" }, 3] }, then: "Jan-Mar" },
+                                    { case: { $lte: [{ $month: "$createdAt" }, 6] }, then: "Apr-Jun" },
+                                    { case: { $lte: [{ $month: "$createdAt" }, 9] }, then: "Jul-Sep" },
+                                ],
+                                default: "Oct-Dec"
+                            }
+                        },
+                        papers: { $push: "$$ROOT" }
+                    }
+                },
+                { $sort: { "_id": 1 } }
+            ]);
+
+            const yearVolumeData = [];
+            volumes.forEach((vol) => {
+                const paperGroups = [];
+                for (let i = 0; i < vol.papers.length; i += PAPERS_PER_VOLUME) {
+                    paperGroups.push({
+                        volume: `Volume ${cumulativeVolume}`,
+                        papers: vol.papers.slice(i, i + PAPERS_PER_VOLUME)
+                    });
+                    cumulativeVolume++;
+                }
+                yearVolumeData.push({ quarter: `${vol._id} ${year}`, volumes: paperGroups });
+            });
+
+            volumeData[year] = yearVolumeData;
+        }
+
+        const requestedYear = parseInt(req.params.year);
+        res.json({ volumes: volumeData[requestedYear] || [] });
+
+    } catch (error) {
+        console.error("Error fetching volumes:", error);
+        res.status(500).send("Server error");
+    }
+};
+

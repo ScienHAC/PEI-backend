@@ -4,7 +4,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { updateResearchPaper } = require('../Controllers/user');
-const { updatePaperStatus, getPapersByDate, getPapersById } = require('../Controllers/researchPaperController');
+const { updatePaperStatus, getPapersByDate, getPapersById, getArchivesByYear, getPapersByVolume } = require('../Controllers/researchPaperController');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
 const restrictToAdmin = require('../Middleware/adminMiddleware');
 
@@ -45,10 +45,17 @@ router.put('/publish/research/:id', upload.single('thumbnail'), updateResearchPa
 // Update research paper status (reviewed or rejected)
 router.put('/research/status/:id', restrictToLoggedInUserOnly, restrictToAdmin, updatePaperStatus);
 
+// GET /api/papers/:paperId
+router.put('/papers/:paperId', restrictToLoggedInUserOnly, getPapersById);
+
 // Get research papers by date with pagination and status filter
 router.get('/research/by-date', restrictToLoggedInUserOnly, restrictToAdmin, getPapersByDate);
 
-// GET /api/papers/:paperId
-router.put('/papers/:paperId', restrictToLoggedInUserOnly, getPapersById);
+
+// Get unique years
+router.get('/archives/years', getArchivesByYear);
+
+// Get volumes by year
+router.get('/archives/volumes/:year', getPapersByVolume);
 
 module.exports = router;
