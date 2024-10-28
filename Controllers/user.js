@@ -5,7 +5,7 @@ const OTP = require('../Models/otp');
 const bcrypt = require('bcrypt');
 const ResearchPaper = require('../Models/ResearchPaper');
 const path = require('path');
-
+const fs = require('fs');
 
 // Set up Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -277,6 +277,12 @@ const handleResearchPaperSubmission = async (req, res) => {
     } catch (error) {
         console.error('Research paper submission error:', error);
         res.status(500).json({ message: 'Failed to submit the research paper.' });
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error('Error deleting file:', err);
+                else console.log('Uploaded PDF deleted due to submission failure.');
+            });
+        }
     }
 };
 
