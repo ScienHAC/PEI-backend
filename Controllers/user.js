@@ -236,6 +236,19 @@ const handleResearchPaperSubmission = async (req, res) => {
 
         const fileName = req.file.filename;
 
+        const researchPaper = await ResearchPaper.create({
+            title,
+            author,
+            contactNumber,
+            email,
+            abstract,
+            articleType,
+            journal,
+            country,
+            userId,
+            filePath: `pdf/${fileName}`
+        });
+
         const mailOptions = {
             from: process.env.EMAIL,
             to: process.env.AdminEmail,
@@ -256,19 +269,6 @@ const handleResearchPaperSubmission = async (req, res) => {
             } else {
                 console.log('Email sent:', info.response);
             }
-        });
-
-        const researchPaper = await ResearchPaper.create({
-            title,
-            author,
-            contactNumber,
-            email,
-            abstract,
-            articleType,
-            journal,
-            country,
-            userId,
-            filePath: `pdf/${fileName}`
         });
 
 
