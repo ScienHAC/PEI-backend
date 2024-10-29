@@ -6,9 +6,14 @@ const { getUserResearchPapers, handleUpdateUser } = require('../Controllers/user
 const fs = require('fs');
 
 const pdfDir = path.join(__dirname, '..', 'uploads', 'pdf');
+const docDir = path.join(__dirname, '..', 'uploads/doc');
 
 if (!fs.existsSync(pdfDir)) {
     fs.mkdirSync(pdfDir, { recursive: true });
+}
+
+if (!fs.existsSync(docDir)) {
+    fs.mkdirSync(docDir, { recursive: true });
 }
 
 // Route to fetch research papers uploaded by the logged-in user

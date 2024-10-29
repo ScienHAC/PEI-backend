@@ -234,8 +234,20 @@ const handleResearchPaperSubmission = async (req, res) => {
             return res.status(400).json({ message: 'PDF file is required.' });
         }
 
-        const fileName = req.file.filename;
+        let fileName;
 
+        if (req.file.mimetype === 'application/pdf') {
+            fileName = req.file.filename;
+        } else if (
+            req.file.mimetype === 'application/msword' ||
+            req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ) {
+            fileName = req.file.filename.replace(path.extname(req.file.originalname), '.pdf');
+        } else {
+            return res.status(400).json({ message: 'Invalid file type. Only PDF and DOCX files are accepted.' });
+        }
+
+        // Create the research paper record in the database
         const researchPaper = await ResearchPaper.create({
             title,
             author,
@@ -249,6 +261,7 @@ const handleResearchPaperSubmission = async (req, res) => {
             filePath: `pdf/${fileName}`
         });
 
+        // Prepare the email options
         const mailOptions = {
             from: process.env.EMAIL,
             to: process.env.AdminEmail,
@@ -263,6 +276,7 @@ const handleResearchPaperSubmission = async (req, res) => {
             ]
         };
 
+        // Send the email notification
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error('Error sending email:', error);
@@ -270,7 +284,6 @@ const handleResearchPaperSubmission = async (req, res) => {
                 console.log('Email sent:', info.response);
             }
         });
-
 
         console.log('Research paper submitted:', researchPaper);
         return res.status(201).json({ message: 'Research paper submitted successfully!', researchPaper });
@@ -285,6 +298,7 @@ const handleResearchPaperSubmission = async (req, res) => {
         }
     }
 };
+
 
 
 // Fetch research papers for a specific user
