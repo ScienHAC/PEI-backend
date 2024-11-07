@@ -26,6 +26,10 @@ const reviewerSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    role: {
+        type: String,
+        default: 'reviewer'
+    },
     papersReviewed: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ResearchPaper'

@@ -20,7 +20,12 @@ const userScehma = new mongoose.Schema({
     isAdmin: {
         type: Boolean,
         default: false
-    }, // Admin flag
+    },
+    role: {
+        type: String,
+        enum: ['user', 'reviewer', 'admin'],
+        default: 'user',
+    },
 }, { timestamps: true });
 
 const User = mongoose.model('Client', userScehma);
