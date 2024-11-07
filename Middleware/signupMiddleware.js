@@ -1,5 +1,6 @@
 const OTP = require('../Models/otp');
 const bcrypt = require('bcrypt');
+const Reviewer = require('../Models/reviewer');
 
 // Middleware to handle signup and store user data temporarily in req.tempUser
 const signupMiddleware = async (req, res, next) => {
@@ -8,6 +9,11 @@ const signupMiddleware = async (req, res, next) => {
         // Validate input
         if (!name || !email || !password || !contact) {
             return res.status(400).json({ message: 'All fields are required.' });
+        }
+
+        const reviewer = await Reviewer.findOne({ email });
+        if (reviewer) {
+            return res.status(400).json({ message: 'This email is already associated with a reviewer account.' });
         }
 
         // Hash the password

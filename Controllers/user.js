@@ -3,6 +3,7 @@ const { setUser } = require('../Services/auth');
 const nodemailer = require('nodemailer');
 const OTP = require('../Models/otp');
 const bcrypt = require('bcrypt');
+const Reviewer = require('../Models/reviewer');
 const ResearchPaper = require('../Models/ResearchPaper');
 const path = require('path');
 const fs = require('fs');
@@ -25,6 +26,12 @@ let handleUserSignup = async (req, res) => {
         if (!name || !email || !password || !contact) {
             return res.status(400).json({ message: 'All fields are required.' });
         }
+
+        const reviewer = await Reviewer.findOne({ email });
+        if (reviewer) {
+            return res.status(400).json({ message: 'This email is already associated with a reviewer account.' });
+        }
+
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -53,7 +60,12 @@ let handleUserLogin = async (req, res) => {
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required.' });
         }
-        const user = await User.findOne({ email });
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            user = await Reviewer.findOne({ email });
+        }
+
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password.' });
         }
@@ -129,7 +141,7 @@ let handleUserOtpLogin = async (req, res) => {
         if (!otpRecord) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }) || await Reviewer.findOne({ email });
         console.log("Login Successfully");
 
         await OTP.deleteOne({ _id: otpRecord._id });
