@@ -5,6 +5,7 @@ const OTP = require('../Models/otp');
 const bcrypt = require('bcrypt');
 const Reviewer = require('../Models/reviewer');
 const ResearchPaper = require('../Models/ResearchPaper');
+const Admin = require('../Models/admin');
 const path = require('path');
 const fs = require('fs');
 
@@ -73,6 +74,17 @@ let handleUserLogin = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Invalid email or password.' });
+        }
+
+        if (user.isAdmin) {
+            let admin = await Admin.findOne({ email });
+            if (!admin) {
+                await Admin.create({
+                    name: user.name,
+                    email: user.email,
+                    role: 'admin'
+                });
+            }
         }
 
         // Generate a 6-digit OTP
@@ -179,7 +191,8 @@ let handleUserForgotPassword = async (req, res) => {
     try {
         // Check if user exists
         const user = await User.findOne({ email });
-        if (!user) {
+        const reviewer = await Reviewer.findOne({ email });
+        if (!user && !reviewer) {
             return res.status(404).json({ message: 'User not found.' });
         }
 
@@ -217,8 +230,17 @@ let handleUserResetPassword = async (req, res) => {
         // Hash the new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Update user password
-        await User.updateOne({ email }, { password: hashedPassword });
+        // Update password for user or reviewer
+        const user = await User.findOne({ email });
+        const reviewer = await Reviewer.findOne({ email });
+
+        if (user) {
+            await User.updateOne({ email }, { password: hashedPassword });
+        } else if (reviewer) {
+            await Reviewer.updateOne({ email }, { password: hashedPassword });
+        } else {
+            return res.status(404).json({ message: 'User not found.' });
+        }
 
         // Delete OTP record
         await OTP.deleteOne({ _id: otpRecord._id });
@@ -333,37 +355,74 @@ const handleUpdateUser = async (req, res) => {
     const { newName, newContact } = req.body;
 
     try {
-        // Find and update user's name and/or contact
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            {
-                ...(newName && { name: newName }),
-                ...(newContact && { contact: newContact })
-            },
-            { new: true }
-        );
+        // Check if the email belongs to a User or Reviewer
+        const user = await User.findById(userId);
+        const reviewer = await Reviewer.findById(userId);
 
-        if (!updatedUser) {
-            return res.status(404).json({ message: 'User not found.' });
+        if (!user && !reviewer) {
+            return res.status(404).json({ message: 'User or Reviewer not found.' });
         }
 
-        // Refresh the authentication token with the updated user's info
-        const token = setUser(updatedUser);
+        let updatedUser;
 
-        // Set the updated cookie
-        res.cookie('_auth_token_pei', token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'None',
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days expiration
-        });
+        // Update User if found
+        if (user) {
+            updatedUser = await User.findByIdAndUpdate(
+                userId,
+                {
+                    ...(newName && { name: newName }),
+                    ...(newContact && { contact: newContact })
+                },
+                { new: true }
+            );
+            if (!updatedUser) {
+                return res.status(404).json({ message: 'User not found.' });
+            }
 
-        res.status(200).json({ message: 'User details updated successfully.', user: updatedUser });
+            const token = setUser(updatedUser);
+
+            res.cookie('_auth_token_pei', token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'None',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            return res.status(200).json({ message: 'User details updated successfully.', user: updatedUser });
+        }
+
+        // Update Reviewer if found
+        else if (reviewer) {
+            updatedUser = await Reviewer.findByIdAndUpdate(
+                userId,
+                {
+                    ...(newName && { name: newName }),
+                    ...(newContact && { contact: newContact })
+                },
+                { new: true }
+            );
+            if (!updatedUser) {
+                return res.status(404).json({ message: 'Reviewer not found.' });
+            }
+
+            const token = setUser(updatedUser);
+
+            res.cookie('_auth_token_pei', token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'None',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            return res.status(200).json({ message: 'Reviewer details updated successfully.', user: updatedUser });
+        }
+
     } catch (error) {
-        console.error('Error updating user details:', error);
+        console.error('Error updating user/reviewer details:', error);
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
+
 
 // Update a research paper by its ID
 async function updateResearchPaper(req, res) {
