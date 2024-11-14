@@ -71,11 +71,18 @@ const sendInviteEmail = async (email, paperId) => {
 router.post('/send-invite', async (req, res) => {
     const { email, paperId } = req.body;
 
-    if (!email) {
-        return res.status(400).json({ message: 'Email is required.' });
+    if (!email || !paperId) {
+        return res.status(400).json({ message: 'Email and paperId are required.' });
     }
 
     try {
+
+        const existingAssignment = await ReviewerPaperAssignment.findOne({ email, paperId });
+
+        if (existingAssignment) {
+            return res.status(200).json({ message: 'Reviewer already invited for this paper.' });
+        }
+
         // Check if reviewer already exists
         let reviewer = await Reviewer.findOne({ email });
         if (!reviewer) {
@@ -171,7 +178,11 @@ router.post('/set-password/:token', async (req, res) => {
                 });
                 return res.status(200).json({ message: 'Reviewer already exists. Please log in instead.' });
             } catch (error) {
-                res.status(500).json({ message: "The invitation link has already been used, and you’re already invited." });
+                if (!res.headersSent) {
+                    return res.status(400).json({ message: "The invitation link has already been used, and you’re already invited." });
+                } else {
+                    console.error('Error occurred, response already sent:', error);
+                }
             }
         } else {
             // If reviewer exists and has no password, update the password
