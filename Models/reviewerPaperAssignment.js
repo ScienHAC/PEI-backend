@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const reviewerPaperAssignmentSchema = new mongoose.Schema({
+    email: {
+        type: String,
+        required: true
+    },
     reviewerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'reviewers',
@@ -9,7 +13,8 @@ const reviewerPaperAssignmentSchema = new mongoose.Schema({
     paperId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ResearchPaper',
-        required: true
+        required: true,
+        unique: true
     },
     assignedDate: {
         type: Date,
@@ -46,6 +51,6 @@ const reviewerPaperAssignmentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-
+reviewerPaperAssignmentSchema.index({ paperId: 1 }, { unique: true });
 const ReviewerPaperAssignment = mongoose.model('ReviewerPaperAssignment', reviewerPaperAssignmentSchema);
 module.exports = ReviewerPaperAssignment;

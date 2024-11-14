@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const ReviewerPaperAssignment = require('../Models/reviewerPaperAssignment');
 const ResearchPaper = require('../Models/ResearchPaper');
+const mongoose = require('mongoose');
 
 // Nodemailer setup for sending email
 const transporter = nodemailer.createTransport({
@@ -96,6 +97,29 @@ router.post('/send-invite', async (req, res) => {
     }
 });
 
+router.get('/status/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if the provided ID is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(404).json({ message: 'Invalid paper ID.' });
+        }
+
+        const researchPaper = await ResearchPaper.findById(id);
+
+        if (!researchPaper) {
+            return res.status(404).json({ message: 'Research paper not found.' });
+        }
+
+        res.status(200).json({ message: 'Research paper exists.' });
+    } catch (error) {
+        console.error('Error checking paper ID:', error);
+        res.status(500).json({ message: 'An error occurred while checking the paper ID.' });
+    }
+});
+
+
 // Backend route to verify the invite token
 router.get('/invite/:token', async (req, res) => {
     const { token } = req.params;
@@ -136,14 +160,19 @@ router.post('/set-password/:token', async (req, res) => {
         let reviewer = await Reviewer.findOne({ email: invite.email });
 
         if (reviewer.password) {
-            // If reviewer exists and has a password, prompt them to log in
-            await ReviewerPaperAssignment.create({
-                reviewerId: reviewer._id,
-                paperId: invite.paperId,
-                assignedDate: Date.now(),
-                status: 'assigned',
-            });
-            return res.status(200).json({ message: 'Reviewer already exists. Please log in instead.' });
+            try {
+                // If reviewer exists and has a password, prompt them to log in
+                await ReviewerPaperAssignment.create({
+                    email: reviewer.email,
+                    reviewerId: reviewer._id,
+                    paperId: invite.paperId,
+                    assignedDate: Date.now(),
+                    status: 'assigned',
+                });
+                return res.status(200).json({ message: 'Reviewer already exists. Please log in instead.' });
+            } catch (error) {
+                res.status(500).json({ message: "The invitation link has already been used, and you’re already invited." });
+            }
         } else {
             // If reviewer exists and has no password, update the password
             if (reviewer && !reviewer.password) {
@@ -159,6 +188,7 @@ router.post('/set-password/:token', async (req, res) => {
         }
 
         await ReviewerPaperAssignment.create({
+            email: reviewer.email,
             reviewerId: reviewer._id,
             paperId: invite.paperId,
             assignedDate: Date.now(),
@@ -172,6 +202,5 @@ router.post('/set-password/:token', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while setting the password.' });
     }
 });
-
 
 module.exports = router;
