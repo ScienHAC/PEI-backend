@@ -1,7 +1,9 @@
+const mongoose = require('mongoose');
+
 const reviewerPaperAssignmentSchema = new mongoose.Schema({
     reviewerId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Reviewer',
+        ref: 'reviewers',
         required: true
     },
     paperId: {

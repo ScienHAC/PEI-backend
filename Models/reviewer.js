@@ -30,10 +30,6 @@ const reviewerSchema = new mongoose.Schema({
         type: String,
         default: 'reviewer'
     },
-    papersReviewed: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'ResearchPaper'
-    }],
 }, { timestamps: true });
 
 const Reviewer = mongoose.model('Reviewer', reviewerSchema);

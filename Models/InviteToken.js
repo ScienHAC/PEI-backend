@@ -10,6 +10,11 @@ const inviteTokenSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    paperId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'researchpapers',
+        required: true
+    },
     expiresAt: {
         type: Date,
         default: () => Date.now() + 7 * 24 * 60 * 60 * 1000, // expires in 7 days

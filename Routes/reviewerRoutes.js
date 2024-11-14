@@ -5,6 +5,8 @@ const InviteToken = require('../Models/InviteToken');
 const Reviewer = require('../Models/reviewer');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const ReviewerPaperAssignment = require('../Models/reviewerPaperAssignment');
+const ResearchPaper = require('../Models/ResearchPaper');
 
 // Nodemailer setup for sending email
 const transporter = nodemailer.createTransport({
@@ -18,7 +20,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Function to generate token, save it, and send invite email
-const sendInviteEmail = async (email) => {
+const sendInviteEmail = async (email, paperId) => {
     // Generate a unique token
     const token = crypto.randomBytes(20).toString('hex');
 
@@ -26,22 +28,38 @@ const sendInviteEmail = async (email) => {
     const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
     // Create and save invite token in database
-    await InviteToken.create({ token, email, expiresAt });
+    await InviteToken.create({ token, email, paperId, expiresAt });
 
-    // Construct the invite link with the token
+    const researchPaper = await ResearchPaper.findById(paperId);
+
+    if (!researchPaper) {
+        throw new Error('Research paper not found.');
+    }
+
+    const filePath = `${process.env.BackendUrl}/api/uploads/${researchPaper.filePath}`;
     const inviteLink = `${process.env.Client_URL}/reviewer/invite/${token}`;
+    const fileName = researchPaper.title + '.pdf';
 
-    // Email content
+    // Email content with attachment
     const mailOptions = {
         from: process.env.EMAIL,
         to: email,
         subject: 'Invitation to Join as a Reviewer',
         html: `
-            <h2>You have been invited to join as a reviewer</h2>
-            <p>Please click the link below to accept the invitation and set up your account:</p>
-            <a href="${inviteLink}">${inviteLink}</a>
-            <p>This link will expire in 7 days.</p>
-        `
+                <h2>You have been invited to join as a reviewer</h2>
+                <p>Please click the link below to view the attached paper:</p>
+                <a href="${filePath}" target="_blank">View Paper</a>
+                <p>Please click the link below to accept the invitation and set up your account:</p>
+                <a href="${inviteLink}" target="_blank">${inviteLink}</a>
+                <p>This link will expire in 7 days.</p>
+            `,
+        attachments: [
+            {
+                filename: fileName,
+                path: filePath,
+                contentType: 'application/pdf'
+            }
+        ]
     };
 
     // Send the email
@@ -50,7 +68,7 @@ const sendInviteEmail = async (email) => {
 
 // Invite route
 router.post('/send-invite', async (req, res) => {
-    const { email } = req.body;
+    const { email, paperId } = req.body;
 
     if (!email) {
         return res.status(400).json({ message: 'Email is required.' });
@@ -70,7 +88,7 @@ router.post('/send-invite', async (req, res) => {
         }
 
         // Send invite email to the provided email address
-        await sendInviteEmail(email);
+        await sendInviteEmail(email, paperId);
         res.status(200).json({ message: 'Invite sent successfully.' });
     } catch (error) {
         console.error('Error sending invite:', error);
@@ -132,6 +150,13 @@ router.post('/set-password/:token', async (req, res) => {
             });
             await reviewer.save();
         }
+
+        await ReviewerPaperAssignment.create({
+            reviewerId: reviewer._id,
+            paperId: invite.paperId,
+            assignedDate: Date.now(),
+            status: 'assigned',
+        });
 
         // Delete the invite token
         await InviteToken.deleteOne({ token });
