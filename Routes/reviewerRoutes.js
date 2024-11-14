@@ -133,10 +133,9 @@ router.post('/set-password/:token', async (req, res) => {
             return res.status(400).json({ message: 'Invalid token.' });
         }
 
-        // Check if the reviewer already exists
         let reviewer = await Reviewer.findOne({ email: invite.email });
 
-        if (reviewer) {
+        if (reviewer.password) {
             // If reviewer exists and has a password, prompt them to log in
             await ReviewerPaperAssignment.create({
                 reviewerId: reviewer._id,
@@ -144,17 +143,19 @@ router.post('/set-password/:token', async (req, res) => {
                 assignedDate: Date.now(),
                 status: 'assigned',
             });
-            return res.status(400).json({ message: 'Reviewer already exists. Please log in instead.' });
+            return res.status(200).json({ message: 'Reviewer already exists. Please log in instead.' });
         } else {
-            // If reviewer does not exist, create a new account
-            const hashedPassword = await bcrypt.hash(password, 10);
-            reviewer = new Reviewer({
-                email: invite.email,
-                password: hashedPassword,
-                name: invite.email.split('@')[0], // Default name as per schema
-                contact: 'Not assigned'
-            });
-            await reviewer.save();
+            // If reviewer exists and has no password, update the password
+            if (reviewer && !reviewer.password) {
+                const hashedPassword = await bcrypt.hash(password, 10);
+
+                // Use updateOne to update only the password field
+                await Reviewer.updateOne(
+                    { email: invite.email },
+                    { $set: { password: hashedPassword } }
+                );
+            }
+
         }
 
         await ReviewerPaperAssignment.create({
