@@ -1,5 +1,3 @@
-const mongoose = require('mongoose');
-
 const reviewerPaperAssignmentSchema = new mongoose.Schema({
     reviewerId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -21,10 +19,32 @@ const reviewerPaperAssignmentSchema = new mongoose.Schema({
         default: 'assigned'
     },
     comments: {
-        type: String,
-        default: ''
+        type: [
+            {
+                userId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    required: true
+                },
+                role: {
+                    type: String,
+                    enum: ['reviewer', 'admin'],
+                    required: true
+                },
+                commentText: {
+                    type: String,
+                    required: true
+                },
+                createdAt: {
+                    type: Date,
+                    default: Date.now
+                }
+            }
+        ],
+        default: []
     }
 }, { timestamps: true });
+
 
 const ReviewerPaperAssignment = mongoose.model('ReviewerPaperAssignment', reviewerPaperAssignmentSchema);
 module.exports = ReviewerPaperAssignment;
