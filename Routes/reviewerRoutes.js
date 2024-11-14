@@ -1,5 +1,4 @@
 const express = require('express');
-const router = express.Router();
 const bcrypt = require('bcrypt');
 const InviteToken = require('../Models/InviteToken');
 const Reviewer = require('../Models/reviewer');
@@ -8,6 +7,9 @@ const nodemailer = require('nodemailer');
 const ReviewerPaperAssignment = require('../Models/reviewerPaperAssignment');
 const ResearchPaper = require('../Models/ResearchPaper');
 const mongoose = require('mongoose');
+const { restrictToLoggedInUserOnly } = require('../middleware/auth');
+const { getAssignedPapers, getComments, addComment } = require('../controllers/reviewerController');
+const router = express.Router();
 
 // Nodemailer setup for sending email
 const transporter = nodemailer.createTransport({
@@ -164,6 +166,15 @@ router.post('/set-password/:token', async (req, res) => {
             return res.status(400).json({ message: 'Invalid token.' });
         }
 
+        const existingAssignment = await ReviewerPaperAssignment.findOne({
+            email: invite.email,
+            paperId: invite.paperId,
+        });
+
+        if (existingAssignment) {
+            return res.status(400).json({ message: "The invitation link has already been used, and you’re already invited." });
+        }
+
         let reviewer = await Reviewer.findOne({ email: invite.email });
 
         if (reviewer.password) {
@@ -213,5 +224,12 @@ router.post('/set-password/:token', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while setting the password.' });
     }
 });
+
+router.get('/papers', restrictToLoggedInUserOnly, getAssignedPapers);
+router.get('/comments', restrictToLoggedInUserOnly, getComments);
+router.post('/comments', restrictToLoggedInUserOnly, addComment);
+
+module.exports = router;
+
 
 module.exports = router;

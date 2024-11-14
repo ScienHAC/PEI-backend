@@ -13,8 +13,7 @@ const reviewerPaperAssignmentSchema = new mongoose.Schema({
     paperId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ResearchPaper',
-        required: true,
-        unique: true
+        required: true
     },
     assignedDate: {
         type: Date,
@@ -51,6 +50,5 @@ const reviewerPaperAssignmentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-reviewerPaperAssignmentSchema.index({ paperId: 1 }, { unique: true });
-const ReviewerPaperAssignment = mongoose.model('ReviewerPaperAssignment', reviewerPaperAssignmentSchema);
+const ReviewerPaperAssignment = mongoose.models.ReviewerPaperAssignment || mongoose.model('ReviewerPaperAssignment', reviewerPaperAssignmentSchema);
 module.exports = ReviewerPaperAssignment;
