@@ -9,7 +9,7 @@ const researchPaperSchema = new mongoose.Schema({
     articleType: { type: String, required: true },
     journal: { type: String, required: true },
     country: { type: String, required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
+    userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'Client' },
     filePath: { type: String, required: true },
     thumbnail: { type: String, default: '' },
     status: { type: String, default: 'under review', enum: ['under review', 'reviewed', 'rejected'] },

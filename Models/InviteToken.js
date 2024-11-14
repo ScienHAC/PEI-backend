@@ -11,7 +11,7 @@ const inviteTokenSchema = new mongoose.Schema({
     },
     paperId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'researchpapers',
+        ref: 'ResearchPaper',
         required: true
     },
     expiresAt: {

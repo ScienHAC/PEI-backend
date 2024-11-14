@@ -11,8 +11,19 @@ exports.getAssignedPapers = async (req, res) => {
             query.status = status;
         }
 
-        const papers = await ReviewerPaperAssignment.find(query).populate('paperId', 'title');
-        res.json({ papers });
+        const papers = await ReviewerPaperAssignment.find(query)
+            .populate('paperId', 'title author abstract journal articleType') // Specify more fields here
+            .exec();
+        // Transform the response to send custom field name
+        const transformedPapers = papers.map(paper => {
+            return {
+                ...paper.toObject(),  // Convert Mongoose document to plain JavaScript object
+                paperData: paper.paperId,  // Rename paperId to paperData
+                paperId: undefined  // Remove the original paperId field from the response
+            };
+        });
+
+        res.json({ papers: transformedPapers });
     } catch (error) {
         console.error('Failed to fetch papers:', error);
         res.status(500).json({ message: 'Failed to fetch papers' });
