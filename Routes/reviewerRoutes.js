@@ -108,6 +108,12 @@ router.get('/invite/:token', async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired invite link.' });
         }
 
+        const reviewer = await Reviewer.findOne({ email: invite.email });
+
+        if (reviewer.password) {
+            return res.status(200).json({ message: 'Reviewer already exists. Please log in instead.', email: invite.email, isReviewer: true });
+        }
+
         // Return the email associated with the invite for confirmation
         res.status(200).json({ email: invite.email });
     } catch (error) {
@@ -132,13 +138,13 @@ router.post('/set-password/:token', async (req, res) => {
 
         if (reviewer) {
             // If reviewer exists and has a password, prompt them to log in
-            if (reviewer.password) {
-                return res.status(400).json({ message: 'Reviewer already exists. Please log in instead.' });
-            }
-            // If reviewer exists but has no password, proceed to set it
-            const hashedPassword = await bcrypt.hash(password, 10);
-            reviewer.password = hashedPassword;
-            await reviewer.save();
+            await ReviewerPaperAssignment.create({
+                reviewerId: reviewer._id,
+                paperId: invite.paperId,
+                assignedDate: Date.now(),
+                status: 'assigned',
+            });
+            return res.status(400).json({ message: 'Reviewer already exists. Please log in instead.' });
         } else {
             // If reviewer does not exist, create a new account
             const hashedPassword = await bcrypt.hash(password, 10);
