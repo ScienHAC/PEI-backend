@@ -11,7 +11,10 @@ exports.getAssignedPapers = async (req, res) => {
             query.status = status;
         }
 
-        const papers = await ReviewerPaperAssignment.find(query).populate("paperId", "title author abstract journal articleType thumbnail").exec();
+        const papers = await ReviewerPaperAssignment.find(query).populate("paperId", "title author abstract journal articleType thumbnail createdAt updatedAt").exec();
+        const total = await ReviewerPaperAssignment.countDocuments({ email }).exec();
+        const totalAssigned = await ReviewerPaperAssignment.countDocuments({ email, status: "assigned" }).exec();
+        const totalCompleted = await ReviewerPaperAssignment.countDocuments({ email, status: "completed" }).exec();
         // Transform the response to send custom field name
         const transformedPapers = papers.map((paper) => {
             return {
@@ -21,7 +24,7 @@ exports.getAssignedPapers = async (req, res) => {
             };
         });
 
-        res.json({ papers: transformedPapers });
+        res.json({ total, totalAssigned, totalCompleted, papers: transformedPapers });
     } catch (error) {
         console.error("Failed to fetch papers:", error);
         res.status(500).json({ message: "Failed to fetch papers" });
