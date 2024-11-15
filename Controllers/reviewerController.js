@@ -11,7 +11,7 @@ exports.getAssignedPapers = async (req, res) => {
             query.status = status;
         }
 
-        const papers = await ReviewerPaperAssignment.find(query).populate("paperId", "title author abstract journal articleType").exec();
+        const papers = await ReviewerPaperAssignment.find(query).populate("paperId", "title author abstract journal articleType thumbnail").exec();
         // Transform the response to send custom field name
         const transformedPapers = papers.map((paper) => {
             return {
