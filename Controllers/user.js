@@ -36,6 +36,8 @@ let handleUserSignup = async (req, res) => {
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+        res.status(200).json({ message: 'Signup successful. Please verify your OTP.' });
+
         // Store OTP and user data temporarily in the OTP collection
         await OTP.create({ email, otp });
 
@@ -47,7 +49,6 @@ let handleUserSignup = async (req, res) => {
             text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
         });
 
-        res.status(200).json({ message: 'Signup successful. Please verify your OTP.' });
     } catch (error) {
         console.error('OTP email error:', error);
         res.status(500).json({ message: 'Failed to send OTP.' });
@@ -90,6 +91,8 @@ let handleUserLogin = async (req, res) => {
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+        res.status(200).json({ message: 'Login successful. Please verify your OTP.' });
+
         // Store OTP and user data temporarily in the OTP collection
         await OTP.create({ email, otp });
 
@@ -101,7 +104,6 @@ let handleUserLogin = async (req, res) => {
             text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
         });
 
-        res.status(200).json({ message: 'Login successful. Please verify your OTP.' });
 
     } catch (error) {
         console.error('Login error:', error);

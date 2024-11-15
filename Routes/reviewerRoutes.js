@@ -97,9 +97,10 @@ router.post('/send-invite', async (req, res) => {
             });
         }
 
+        res.status(200).json({ message: 'Invite sent successfully.' });
+
         // Send invite email to the provided email address
         await sendInviteEmail(email, paperId);
-        res.status(200).json({ message: 'Invite sent successfully.' });
     } catch (error) {
         console.error('Error sending invite:', error);
         res.status(500).json({ message: 'Failed to send invite. Please try again later.' });
