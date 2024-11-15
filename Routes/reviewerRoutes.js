@@ -143,12 +143,21 @@ router.get('/invite/:token', async (req, res) => {
 
         const reviewer = await Reviewer.findOne({ email: invite.email });
 
+        const researchPaper = await ResearchPaper.findById(invite.paperId);
+
+        if (!researchPaper) {
+            return res.status(404).json({ message: 'Research paper not found.' });
+        }
+
+        const filePath = `${process.env.BackendUrl}/api/uploads/${researchPaper.filePath}`;
+        const fileName = researchPaper.title;
+
         if (reviewer.password) {
-            return res.status(200).json({ message: 'Reviewer already exists. Please log in instead.', email: invite.email, isReviewer: true });
+            return res.status(200).json({ message: 'Reviewer already exists. Please log in instead.', email: invite.email, isReviewer: true, fileName, filePath });
         }
 
         // Return the email associated with the invite for confirmation
-        res.status(200).json({ email: invite.email });
+        res.status(200).json({ email: invite.email, fileName, filePath });
     } catch (error) {
         res.status(500).json({ message: 'An error occurred while validating the invite link.' });
     }
