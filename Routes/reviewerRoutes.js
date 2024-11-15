@@ -7,8 +7,8 @@ const nodemailer = require('nodemailer');
 const ReviewerPaperAssignment = require('../Models/reviewerPaperAssignment');
 const ResearchPaper = require('../Models/ResearchPaper');
 const mongoose = require('mongoose');
-const { restrictToLoggedInUserOnly } = require('../middleware/auth');
-const { getAssignedPapers, getComments, addComment } = require('../controllers/reviewerController');
+const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
+const { getAssignedPapers, getComments, addComment } = require('../Controllers/reviewerController');
 const router = express.Router();
 
 // Nodemailer setup for sending email
