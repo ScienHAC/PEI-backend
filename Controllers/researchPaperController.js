@@ -1,4 +1,5 @@
 const ResearchPaper = require('../Models/ResearchPaper');
+const ReviewerPaperAssignment = require('../Models/reviewerPaperAssignment');
 const nodemailer = require('nodemailer');
 
 // Setup nodemailer transporter
@@ -92,6 +93,15 @@ exports.getPapersById = async (req, res) => {
         if (req.user.isAdmin) {
             // Admin can see all papers
             paper = await ResearchPaper.findById(paperId);
+        } else if (req.user.role === 'reviewer') {
+            const assignment = await ReviewerPaperAssignment.findOne({
+                paperId: paperId,
+                email: req.user.email
+            });
+
+            if (assignment) {
+                paper = await ResearchPaper.findById(paperId);
+            }
         } else {
             // Regular user can only see their own papers
             paper = await ResearchPaper.findOne({ _id: paperId, email: req.user.email });

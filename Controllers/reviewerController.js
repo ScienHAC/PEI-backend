@@ -48,7 +48,6 @@ exports.addComment = async (req, res) => {
     try {
         const { paperId, commentText } = req.body;
         const { id, role } = req.user;
-        console.log(paperId)
         // Find the paper assignment by `paperId`
         const paperAssignment = await ReviewerPaperAssignment.findOne({ _id: paperId });
         if (!paperAssignment)
