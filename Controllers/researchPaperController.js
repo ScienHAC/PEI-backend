@@ -155,6 +155,9 @@ exports.getPapersByVolume = async (req, res) => {
         for (const yearObj of yearsData) {
             const year = yearObj._id;
 
+            // Predefine all quarters
+            const quarters = ["Jan-Mar", "Apr-Jun", "Jul-Sep", "Oct-Dec"];
+
             const volumes = await ResearchPaper.aggregate([
                 {
                     $match: {
@@ -170,30 +173,70 @@ exports.getPapersByVolume = async (req, res) => {
                         _id: {
                             $switch: {
                                 branches: [
-                                    { case: { $lte: [{ $month: "$createdAt" }, 3] }, then: "Jan-Mar" },
-                                    { case: { $lte: [{ $month: "$createdAt" }, 6] }, then: "Apr-Jun" },
-                                    { case: { $lte: [{ $month: "$createdAt" }, 9] }, then: "Jul-Sep" },
+                                    {
+                                        case: {
+                                            $and: [
+                                                { $gte: [{ $month: "$createdAt" }, 1] },
+                                                { $lte: [{ $month: "$createdAt" }, 3] }
+                                            ]
+                                        },
+                                        then: "Jan-Mar"
+                                    },
+                                    {
+                                        case: {
+                                            $and: [
+                                                { $gte: [{ $month: "$createdAt" }, 4] },
+                                                { $lte: [{ $month: "$createdAt" }, 6] }
+                                            ]
+                                        },
+                                        then: "Apr-Jun"
+                                    },
+                                    {
+                                        case: {
+                                            $and: [
+                                                { $gte: [{ $month: "$createdAt" }, 7] },
+                                                { $lte: [{ $month: "$createdAt" }, 9] }
+                                            ]
+                                        },
+                                        then: "Jul-Sep"
+                                    },
+                                    {
+                                        case: {
+                                            $and: [
+                                                { $gte: [{ $month: "$createdAt" }, 10] },
+                                                { $lte: [{ $month: "$createdAt" }, 12] }
+                                            ]
+                                        },
+                                        then: "Oct-Dec"
+                                    }
                                 ],
-                                default: "Oct-Dec"
+                                default: null
                             }
                         },
                         papers: { $push: "$$ROOT" }
                     }
                 },
-                { $sort: { "_id": 1 } }
+                { $sort: { "_id": 1 } } // Ensure quarters are in order
             ]);
 
-            const yearVolumeData = [];
+            const volumesByQuarter = {};
+            // Organize papers by quarter
             volumes.forEach((vol) => {
+                volumesByQuarter[vol._id] = vol.papers;
+            });
+
+            const yearVolumeData = [];
+            quarters.forEach((quarter) => {
+                const papers = volumesByQuarter[quarter] || []; // Default to an empty array
                 const paperGroups = [];
-                for (let i = 0; i < vol.papers.length; i += PAPERS_PER_VOLUME) {
+                for (let i = 0; i < papers.length; i += PAPERS_PER_VOLUME) {
                     paperGroups.push({
                         volume: `Volume ${cumulativeVolume}`,
-                        papers: vol.papers.slice(i, i + PAPERS_PER_VOLUME)
+                        papers: papers.slice(i, i + PAPERS_PER_VOLUME)
                     });
                     cumulativeVolume++;
                 }
-                yearVolumeData.push({ quarter: `${vol._id} ${year}`, volumes: paperGroups });
+                yearVolumeData.push({ quarter: `${quarter} ${year}`, volumes: paperGroups });
             });
 
             volumeData[year] = yearVolumeData;
@@ -207,4 +250,6 @@ exports.getPapersByVolume = async (req, res) => {
         res.status(500).send("Server error");
     }
 };
+
+
 
