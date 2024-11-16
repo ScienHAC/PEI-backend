@@ -5,12 +5,11 @@ exports.getAllComments = async (req, res) => {
         const { paperId } = req.query;
 
         const query = { paperId };
-        const papers = await ReviewerPaperAssignment.findOne(query).populate("paperId", "title author abstract journal articleType thumbnail createdAt updatedAt").exec();
         const paperAssignment = await ReviewerPaperAssignment.find(query);
         if (!paperAssignment) {
             return res.status(404).json({ message: "No comments found" });
         }
-        res.status(200).json({ paperAssignment, papers });
+        res.status(200).json({ paperAssignment });
     } catch (error) {
         console.error("Error fetching comments:", error);
         res.status(500).json({ message: "Failed to fetch comments" });

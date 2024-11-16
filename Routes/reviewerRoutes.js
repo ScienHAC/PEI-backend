@@ -125,7 +125,7 @@ router.get('/status/:id', async (req, res) => {
             return res.status(404).json({ message: 'Research paper not found.' });
         }
 
-        res.status(200).json({ message: 'Research paper exists.' });
+        res.status(200).json({ message: 'Research paper exists.', researchPaper });
     } catch (error) {
         console.error('Error checking paper ID:', error);
         res.status(500).json({ message: 'An error occurred while checking the paper ID.' });
