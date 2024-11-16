@@ -15,12 +15,11 @@ exports.getAssignedPapers = async (req, res) => {
         const total = await ReviewerPaperAssignment.countDocuments({ email }).exec();
         const totalAssigned = await ReviewerPaperAssignment.countDocuments({ email, status: "assigned" }).exec();
         const totalCompleted = await ReviewerPaperAssignment.countDocuments({ email, status: "completed" }).exec();
-        // Transform the response to send custom field name
         const transformedPapers = papers.map((paper) => {
             return {
-                ...paper.toObject(), // Convert Mongoose document to plain JavaScript object
-                paperData: paper.paperId, // Rename paperId to paperData
-                paperId: undefined, // Remove the original paperId field from the response
+                ...paper.toObject(),
+                paperData: paper.paperId,
+                paperId: undefined,
             };
         });
 
@@ -51,12 +50,10 @@ exports.addComment = async (req, res) => {
     try {
         const { paperId, commentText } = req.body;
         const { id, role } = req.user;
-        // Find the paper assignment by `paperId`
         const paperAssignment = await ReviewerPaperAssignment.findOne({ _id: paperId });
         if (!paperAssignment)
             return res.status(404).json({ message: "Paper not found" });
 
-        // Add new comment
         const newComment = {
             userId: id,
             role,
@@ -64,7 +61,6 @@ exports.addComment = async (req, res) => {
             createdAt: new Date(),
         };
 
-        // Push the new comment into the comments array and save the document
         paperAssignment.comments.push(newComment);
         await paperAssignment.save();
 
