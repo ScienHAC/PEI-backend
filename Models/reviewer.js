@@ -30,6 +30,13 @@ const reviewerSchema = new mongoose.Schema({
         type: String,
         default: 'reviewer'
     },
+    expiresAt: {
+        type: Date,
+        default: function () {
+            return this.password ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        },
+        index: { expireAfterSeconds: 0 },
+    },
 }, { timestamps: true });
 
 const Reviewer = mongoose.model('Reviewer', reviewerSchema);

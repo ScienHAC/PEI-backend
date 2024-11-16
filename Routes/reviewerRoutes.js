@@ -9,6 +9,9 @@ const ResearchPaper = require('../Models/ResearchPaper');
 const mongoose = require('mongoose');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
 const { getAssignedPapers, getComments, addComment } = require('../Controllers/reviewerController');
+const { addCommentToReviewer, getAllComments } = require('../Controllers/adminReviewerController');
+const restrictToAdmin = require('../Middleware/adminMiddleware');
+
 const router = express.Router();
 
 // Nodemailer setup for sending email
@@ -235,11 +238,18 @@ router.post('/set-password/:token', async (req, res) => {
     }
 });
 
+router.get('/exist/all', async (req, res) => {
+    try {
+        const reviewers = await Reviewer.find({});
+        res.status(200).json(reviewers);
+    } catch (error) {
+        res.status(500).json({ message: 'An error occurred while fetching reviewers.' });
+    }
+});
 router.get('/papers', restrictToLoggedInUserOnly, getAssignedPapers);
 router.get('/comments', restrictToLoggedInUserOnly, getComments);
 router.post('/comments', restrictToLoggedInUserOnly, addComment);
-
-module.exports = router;
-
+router.get('/comments/admin/all', restrictToLoggedInUserOnly, restrictToAdmin, getAllComments);
+router.post('/comments/admin/add', restrictToLoggedInUserOnly, restrictToAdmin, addCommentToReviewer);
 
 module.exports = router;
