@@ -18,10 +18,14 @@ exports.getAllComments = async (req, res) => {
 
 exports.addCommentToReviewer = async (req, res) => {
     try {
-        const { paperId, commentText } = req.body;
+        const { paperId, commentText, email } = req.body;
         const { id, role } = req.user;
 
-        const paperAssignment = await ReviewerPaperAssignment.findOne({ _id: paperId });
+        if (!paperId || !commentText || !email) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const paperAssignment = await ReviewerPaperAssignment.findOne({ paperId, email });
         if (!paperAssignment) {
             return res.status(404).json({ message: "Paper not found" });
         }
