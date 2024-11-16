@@ -24,6 +24,12 @@ exports.updatePaperStatus = async (req, res) => {
             return res.status(404).json({ error: 'Research paper not found' });
         }
 
+        await ReviewerPaperAssignment.updateMany(
+            { paperId: id, status: 'assigned' },
+            { status: 'completed' },
+            { new: true }
+        );
+
         // Send notification email
         const mailOptions = {
             from: process.env.EMAIL,
