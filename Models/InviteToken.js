@@ -17,7 +17,8 @@ const inviteTokenSchema = new mongoose.Schema({
     expiresAt: {
         type: Date,
         default: () => Date.now() + 7 * 24 * 60 * 60 * 1000, // expires in 7 days
-        required: true
+        required: true,
+        index: { expires: 0 },
     },
 });
 
