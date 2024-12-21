@@ -103,6 +103,54 @@ router.post('/send-invite', restrictToLoggedInUserOnly, restrictToAdmin, async (
     }
 });
 
+router.post('/check-status', restrictToLoggedInUserOnly, restrictToAdmin, async (req, res) => {
+    const { paperId } = req.body;
+
+    try {
+        const existingAssignments = await ReviewerPaperAssignment.find({ paperId });
+        const acceptedEmails = new Set(existingAssignments.map((assignment) => assignment.email));
+
+        const pendingInvites = await InviteToken.find({ paperId });
+        const pendingEmails = new Set(pendingInvites.map((invite) => invite.email));
+
+        const combinedEmails = new Set([...acceptedEmails, ...pendingEmails]);
+
+        const notInvitedReviewers = await Reviewer.find({ email: { $nin: Array.from(combinedEmails) } });
+        const notInvitedEmails = notInvitedReviewers.map((reviewer) => reviewer.email);
+
+        const reviewersStatus = [];
+
+        for (const email of acceptedEmails) {
+            reviewersStatus.push({
+                email,
+                status: 'accepted',
+            });
+        }
+
+        for (const email of pendingEmails) {
+            if (!acceptedEmails.has(email)) {
+                reviewersStatus.push({
+                    email,
+                    status: 'not accepted',
+                });
+            }
+        }
+
+        for (const email of notInvitedEmails) {
+            reviewersStatus.push({
+                email,
+                status: 'not invited',
+            });
+        }
+
+        res.status(200).json({ reviewersStatus });
+    } catch (error) {
+        console.error("Error checking reviewers status:", error);
+        res.status(500).json({ message: "An error occurred while checking reviewer status." });
+    }
+});
+
+
 router.get('/status/:id', async (req, res) => {
     try {
         const { id } = req.params;
