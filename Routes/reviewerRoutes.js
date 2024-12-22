@@ -151,6 +151,49 @@ router.post('/check-status', restrictToLoggedInUserOnly, restrictToAdmin, async 
 });
 
 
+router.post('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (req, res) => {
+    const email = req.query.email;
+
+    try {
+        const totalPaperAccepted = await ReviewerPaperAssignment.find({ email }).countDocuments();
+
+        const totalPaperAssignedInvite = await InviteToken.aggregate([
+            { $match: { email: email } },
+            { $group: { _id: "$paperId" } },
+            { $count: "uniquePaperIdCount" }
+        ]);
+        const uniquePaperIdCount = totalPaperAssignedInvite.length > 0 ? totalPaperAssignedInvite[0].uniquePaperIdCount : 0;
+
+        const totalPaperAssigned = uniquePaperIdCount + totalPaperAccepted;
+
+        const totalPaperNotAccepted = totalPaperAssigned - totalPaperAccepted;
+
+        const totalPendingPaperFeedback = await ReviewerPaperAssignment.find({
+            email: email,
+            comments: { $size: 0 }
+        }).countDocuments();
+
+        const totalPaperFeedback = await ReviewerPaperAssignment.find({
+            email: email,
+            comments: { $not: { $size: 0 } }
+        }).countDocuments();
+
+        res.json({
+            totalPaperAssigned: totalPaperAssigned,
+            totalPaperAccepted: totalPaperAccepted,
+            totalPaperNotAccepted: totalPaperNotAccepted,
+            totalPendingPaperFeedback: totalPendingPaperFeedback,
+            totalPaperFeedback: totalPaperFeedback
+        });
+
+    } catch (error) {
+        console.error("Error checking reviewers status:", error);
+        res.status(500).json({ message: "An error occurred while checking reviewer profile data." });
+    }
+});
+
+
+
 router.get('/status/:id', async (req, res) => {
     try {
         const { id } = req.params;
