@@ -28,6 +28,12 @@ let handleUserSignup = async (req, res) => {
             return res.status(400).json({ message: 'All fields are required.' });
         }
 
+        const user = await User.findOne({ email });
+
+        if (user) {
+            return res.status(400).json({ message: 'This Email is already registered Please Login instead.' });
+        }
+
         const reviewer = await Reviewer.findOne({ email });
         if (reviewer) {
             return res.status(400).json({ message: 'This email is already associated with a reviewer account.' });
