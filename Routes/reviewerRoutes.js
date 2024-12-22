@@ -151,7 +151,7 @@ router.post('/check-status', restrictToLoggedInUserOnly, restrictToAdmin, async 
 });
 
 
-router.post('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (req, res) => {
+router.get('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (req, res) => {
     const email = req.query.email;
 
     try {
