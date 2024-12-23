@@ -360,7 +360,7 @@ const getUserResearchPapers = async (req, res) => {
 // Update user's details
 const handleUpdateUser = async (req, res) => {
     const userId = req.user.id;
-    const { newName, newContact } = req.body;
+    const { newName, newContact, newAffiliation, newAreaOfSpecialization } = req.body;
 
     try {
         // Check if the email belongs to a User or Reviewer
@@ -379,7 +379,9 @@ const handleUpdateUser = async (req, res) => {
                 userId,
                 {
                     ...(newName && { name: newName }),
-                    ...(newContact && { contact: newContact })
+                    ...(newContact && { contact: newContact }),
+                    ...(newAffiliation && { affiliation: newAffiliation }),
+                    ...(newAreaOfSpecialization && { areaOfSpecialization: newAreaOfSpecialization })
                 },
                 { new: true }
             );
@@ -405,7 +407,9 @@ const handleUpdateUser = async (req, res) => {
                 userId,
                 {
                     ...(newName && { name: newName }),
-                    ...(newContact && { contact: newContact })
+                    ...(newContact && { contact: newContact }),
+                    ...(newAffiliation && { affiliation: newAffiliation }),
+                    ...(newAreaOfSpecialization && { areaOfSpecialization: newAreaOfSpecialization })
                 },
                 { new: true }
             );
@@ -428,6 +432,35 @@ const handleUpdateUser = async (req, res) => {
     } catch (error) {
         console.error('Error updating user/reviewer details:', error);
         res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+// Fetch User details
+const handleUserDetails = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        const user = await User.findById(userId);
+        if (user) {
+            return res.status(200).json({
+                message: 'User details retrieved successfully.',
+                user,
+            });
+        }
+
+        const reviewer = await Reviewer.findById(userId);
+        if (reviewer) {
+            return res.status(200).json({
+                message: 'Reviewer details retrieved successfully.',
+                user: reviewer,
+            });
+        }
+
+        return res.status(404).json({ message: 'User or Reviewer not found.' });
+
+    } catch (error) {
+        console.error('Error retrieving user/reviewer details:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
     }
 };
 
@@ -518,4 +551,4 @@ let handleContactUs = async (req, res) => {
     }
 };
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper, handleContactUs }; 
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper, handleContactUs, handleUserDetails }; 

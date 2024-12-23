@@ -17,6 +17,16 @@ const userScehma = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    affiliation: {
+        type: String,
+        required: true,
+        default: 'Not assigned'
+    },
+    areaOfSpecialization: {
+        type: String,
+        required: true,
+        default: 'Not assigned'
+    },
     isAdmin: {
         type: Boolean,
         default: false
