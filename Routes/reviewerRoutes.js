@@ -164,6 +164,7 @@ router.get('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (
     const email = req.query.email;
 
     try {
+        const reviewer = await Reviewer.findOne({ email });
         const totalRejectedPaper = await ReviewerPaperAssignment.find({ email, status: 'rejected' }).countDocuments();
         const totalPaperAccepted = await ReviewerPaperAssignment.find({ email }).countDocuments() - totalRejectedPaper;
 
@@ -194,7 +195,10 @@ router.get('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (
             totalPaperNotAccepted: totalPaperNotAccepted,
             totalPendingPaperFeedback: totalPendingPaperFeedback,
             totalPaperFeedback: totalPaperFeedback,
-            totalRejectedPaper: totalRejectedPaper
+            totalRejectedPaper: totalRejectedPaper,
+            reviewerName: reviewer.name,
+            reviewerAffiliation: reviewer.affiliation,
+            reviewerAreaOfSpecialization: reviewer.areaOfSpecialization
         });
 
     } catch (error) {
