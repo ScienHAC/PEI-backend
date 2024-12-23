@@ -21,7 +21,7 @@ const reviewerPaperAssignmentSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['assigned', 'reviewing', 'completed'],
+        enum: ['assigned', 'reviewing', 'completed', 'rejected'],
         default: 'assigned'
     },
     comments: {
