@@ -110,11 +110,12 @@ router.post('/check-status', restrictToLoggedInUserOnly, restrictToAdmin, async 
         const existingAssignments = await ReviewerPaperAssignment.find({ paperId });
         const acceptedEmails = new Set(existingAssignments.map((assignment) => assignment.email));
         const rejectedEmails = new Set(existingAssignments.filter(assignment => assignment.status === 'rejected').map((assignment) => assignment.email));
+        rejectedEmails.forEach(email => acceptedEmails.delete(email));
 
         const pendingInvites = await InviteToken.find({ paperId });
         const pendingEmails = new Set(pendingInvites.map((invite) => invite.email));
 
-        const combinedEmails = new Set([...acceptedEmails, ...pendingEmails]);
+        const combinedEmails = new Set([...acceptedEmails, ...pendingEmails, ...rejectedEmails]);
 
         const notInvitedReviewers = await Reviewer.find({ email: { $nin: Array.from(combinedEmails) } });
         const notInvitedEmails = notInvitedReviewers.map((reviewer) => reviewer.email);
@@ -163,7 +164,8 @@ router.get('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (
     const email = req.query.email;
 
     try {
-        const totalPaperAccepted = await ReviewerPaperAssignment.find({ email }).countDocuments();
+        const totalRejectedPaper = await ReviewerPaperAssignment.find({ email, status: 'rejected' }).countDocuments();
+        const totalPaperAccepted = await ReviewerPaperAssignment.find({ email }).countDocuments() - totalRejectedPaper;
 
         const totalPaperAssignedInvite = await InviteToken.aggregate([
             { $match: { email: email } },
@@ -172,14 +174,14 @@ router.get('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (
         ]);
         const uniquePaperIdCount = totalPaperAssignedInvite.length > 0 ? totalPaperAssignedInvite[0].uniquePaperIdCount : 0;
 
-        const totalPaperAssigned = uniquePaperIdCount + totalPaperAccepted;
+        const totalPaperAssigned = uniquePaperIdCount + totalPaperAccepted + totalRejectedPaper;
 
-        const totalPaperNotAccepted = totalPaperAssigned - totalPaperAccepted;
+        const totalPaperNotAccepted = uniquePaperIdCount;
 
         const totalPendingPaperFeedback = await ReviewerPaperAssignment.find({
             email: email,
             comments: { $size: 0 }
-        }).countDocuments();
+        }).countDocuments() - totalRejectedPaper;
 
         const totalPaperFeedback = await ReviewerPaperAssignment.find({
             email: email,
@@ -191,7 +193,8 @@ router.get('/profile-data', restrictToLoggedInUserOnly, restrictToAdmin, async (
             totalPaperAccepted: totalPaperAccepted,
             totalPaperNotAccepted: totalPaperNotAccepted,
             totalPendingPaperFeedback: totalPendingPaperFeedback,
-            totalPaperFeedback: totalPaperFeedback
+            totalPaperFeedback: totalPaperFeedback,
+            totalRejectedPaper: totalRejectedPaper
         });
 
     } catch (error) {
