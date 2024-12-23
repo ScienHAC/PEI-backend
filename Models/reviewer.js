@@ -22,6 +22,16 @@ const reviewerSchema = new mongoose.Schema({
         required: true,
         default: 'Not assigned'
     },
+    affiliation: {
+        type: String,
+        required: true,
+        default: 'Not assigned'
+    },
+    areaOfSpecialization: {
+        type: String,
+        required: true,
+        default: 'Not assigned'
+    },
     isAdmin: {
         type: Boolean,
         default: false

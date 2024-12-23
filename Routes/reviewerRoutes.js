@@ -109,6 +109,7 @@ router.post('/check-status', restrictToLoggedInUserOnly, restrictToAdmin, async 
     try {
         const existingAssignments = await ReviewerPaperAssignment.find({ paperId });
         const acceptedEmails = new Set(existingAssignments.map((assignment) => assignment.email));
+        const rejectedEmails = new Set(existingAssignments.filter(assignment => assignment.status === 'rejected').map((assignment) => assignment.email));
 
         const pendingInvites = await InviteToken.find({ paperId });
         const pendingEmails = new Set(pendingInvites.map((invite) => invite.email));
@@ -124,6 +125,13 @@ router.post('/check-status', restrictToLoggedInUserOnly, restrictToAdmin, async 
             reviewersStatus.push({
                 email,
                 status: 'accepted',
+            });
+        }
+
+        for (const email of rejectedEmails) {
+            reviewersStatus.push({
+                email,
+                status: 'rejected',
             });
         }
 
@@ -250,9 +258,9 @@ router.get('/invite/:token', async (req, res) => {
 });
 
 // Backend route to set the password for the reviewer
-router.post('/set-password/:token', async (req, res) => {
+router.post('/set-password-and-details/:token', async (req, res) => {
     const { token } = req.params;
-    const { password } = req.body;
+    const { password, affiliation, areaOfSpecialization } = req.body;
 
     try {
         const invite = await InviteToken.findOne({ token });
@@ -294,7 +302,13 @@ router.post('/set-password/:token', async (req, res) => {
 
                 await Reviewer.updateOne(
                     { email: invite.email },
-                    { $set: { password: hashedPassword } }
+                    {
+                        $set: {
+                            password: hashedPassword,
+                            affiliation,
+                            areaOfSpecialization
+                        }
+                    }
                 );
             }
 
@@ -315,6 +329,45 @@ router.post('/set-password/:token', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while setting the password.' });
     }
 });
+
+router.post('/reject-invite/:token', async (req, res) => {
+    const { token } = req.params;
+
+    try {
+        const invite = await InviteToken.findOne({ token });
+        if (!invite) {
+            return res.status(400).json({ message: 'Invalid token.' });
+        }
+
+        const existingAssignment = await ReviewerPaperAssignment.findOne({
+            email: invite.email,
+            paperId: invite.paperId,
+        });
+
+        if (existingAssignment) {
+            return res.status(400).json({ message: "The invitation link has already been used, and you’re already invited." });
+        }
+
+        let reviewer = await Reviewer.findOne({ email: invite.email });
+
+        if (reviewer) {
+            await ReviewerPaperAssignment.create({
+                email: reviewer.email,
+                reviewerId: reviewer._id,
+                paperId: invite.paperId,
+                assignedDate: Date.now(),
+                status: 'rejected',
+            });
+        }
+
+        await InviteToken.deleteOne({ token });
+        res.status(200).json({ message: 'Invite rejected.' });
+
+    } catch (error) {
+        res.status(500).json({ message: 'An error occurred while rejecting the invite.' });
+    }
+});
+
 
 router.get('/exist/all', restrictToLoggedInUserOnly, restrictToAdmin, async (req, res) => {
     try {
