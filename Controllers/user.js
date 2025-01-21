@@ -183,18 +183,14 @@ let handleUserStatus = async (req, res) => {
     res.json({ user: req.user, isAuthenticated: true });
 }
 
-const handleUserLogout = async (req, res) => {
-    res.cookie("_auth_token_pei", "", {
+let handleUserLogout = async (req, res) => {
+    res.clearCookie('_auth_token_pei', {
         httpOnly: true,
-        secure: true,  // Required for cross-site cookies
-        sameSite: "None",
-        expires: new Date(0),  // Forces cookie expiration
-        path: "/"  // Ensure it's applied globally
+        secure: true,
+        sameSite: "None"
     });
-
-    res.status(200).json({ message: "Logged out successfully" });
-};
-
+    res.json({ message: 'Logged out successfully' });
+}
 
 let handleAdminStatus = async (req, res) => {
     res.send(`Welcome Admin, ${req.user.email}!`);
