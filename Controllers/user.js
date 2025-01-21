@@ -184,7 +184,11 @@ let handleUserStatus = async (req, res) => {
 }
 
 let handleUserLogout = async (req, res) => {
-    res.clearCookie('_auth_token_pei');
+    res.clearCookie('_auth_token_pei', {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None"
+    });
     res.json({ message: 'Logged out successfully' });
 }
 
