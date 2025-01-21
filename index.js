@@ -9,7 +9,9 @@ require('dotenv').config();
 const app = express();
 app.use(cors({
     origin: process.env.Client_URL,
-    credentials: true
+    credentials: true,
+    methods: "GET,OPTIONS,PATCH,DELETE,POST,PUT",
+    allowedHeaders: "Content-Type,Authorization"
 }));
 app.use("/api/uploads/pdf", express.static("uploads/pdf"));
 app.use("/api/uploads/thumbnails", express.static("thumbnail"));
