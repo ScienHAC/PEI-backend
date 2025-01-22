@@ -5,13 +5,13 @@ function restrictToLoggedInUserOnly(req, res, next) {
     const token = req.cookies._auth_token_pei;
 
     if (!token) {
-        return res.status(401).json({ message: 'Unauthorized: No token provided' });
+        return res.status(204).end();
     }
 
     try {
         const user = getUser(token); // Get user data from token
         if (!user) {
-            return res.status(401).json({ message: 'Unauthorized: Invalid token' });
+            return res.status(204).end();
         }
         req.user = user; // Add user data to the request
         next(); // Move to the next middleware or route handler
