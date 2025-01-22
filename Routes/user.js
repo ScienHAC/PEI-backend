@@ -17,7 +17,7 @@ router.post("/signup", handleUserSignup);
 // Login
 router.post("/login", handleUserLogin);
 // Logout
-router.get("/logout", handleUserLogout);
+router.post("/logout", handleUserLogout);
 // Check user status
 router.get("/status", restrictToLoggedInUserOnly, handleUserStatus);
 // check admin status
