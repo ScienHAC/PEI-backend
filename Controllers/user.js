@@ -214,7 +214,7 @@ let handleUserForgotPassword = async (req, res) => {
         // Store OTP in the OTP collection
         await OTP.create({ email, otp });
 
-        // Send OTP email
+        // Send OTP via email
         await transporter.sendMail({
             from: process.env.EMAIL,
             to: email,
