@@ -10,7 +10,8 @@ const path = require('path');
 const { handleResearchPaperSubmission } = require('../Controllers/user');
 const { setUser } = require('../Services/auth');
 const router = express.Router();
-const docxToPdf = require('docx-pdf');
+const puppeteer = require('puppeteer');
+const mammoth = require('mammoth');
 
 // Signup
 router.post("/signup", handleUserSignup);
@@ -58,14 +59,33 @@ const convertDocToPdf = async (req, res, next) => {
         const pdfPath = `uploads/pdf/${req.file.filename.replace(path.extname(req.file.originalname), '.pdf')}`;
 
         try {
-            await docxToPdf(req.file.path, pdfPath, (err, result) => {
-                if (err) {
-                    return res.status(500).json({ message: 'Failed to convert document to PDF.' });
-                }
-                req.file.convertedPath = pdfPath;
-                next();
+            // Convert DOCX to HTML
+            const result = await mammoth.convertToHtml({ path: req.file.path });
+            const htmlContent = result.value;
+
+            // Convert HTML to PDF using Puppeteer
+            const browser = await puppeteer.launch({
+                headless: 'new',
+                args: ['--no-sandbox', '--disable-setuid-sandbox'] // Needed for running in some environments
             });
+            const page = await browser.newPage();
+            await page.setContent(htmlContent);
+            await page.pdf({
+                path: pdfPath,
+                format: 'A4',
+                margin: {
+                    top: '40px',
+                    right: '40px',
+                    bottom: '40px',
+                    left: '40px'
+                }
+            });
+            await browser.close();
+
+            req.file.convertedPath = pdfPath;
+            next();
         } catch (error) {
+            console.error('PDF conversion error:', error);
             return res.status(500).json({ message: 'Failed to convert document to PDF.' });
         }
     } else {
