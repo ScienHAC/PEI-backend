@@ -9,16 +9,34 @@ const Admin = require('../Models/admin');
 const path = require('path');
 const fs = require('fs');
 
-// Set up Nodemailer transporter
+// Update the transporter configuration
 const transporter = nodemailer.createTransport({
-    host: process.env.smtpHost,
-    port: 587,
+    host: process.env.smtpHost || 'smtp.example.com',
+    port: parseInt(process.env.smtpPort) || 587,
     secure: false,
     auth: {
         user: process.env.EMAIL,
         pass: process.env.EMAIL_PASSWORD,
     },
+    tls: {
+        rejectUnauthorized: false
+    }
 });
+
+// Add this function to verify mail configuration at startup
+function verifyMailConfig() {
+    transporter.verify(function (error, success) {
+        if (error) {
+            console.error('SMTP configuration error:', error);
+            // Continue app execution even with email errors
+        } else {
+            console.log('SMTP server is ready to take messages');
+        }
+    });
+}
+
+// Call this function when your app initializes (in your main server file)
+// verifyMailConfig();
 
 
 let handleUserSignup = async (req, res) => {
@@ -94,26 +112,31 @@ let handleUserLogin = async (req, res) => {
             }
         }
 
-        // Generate a 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        try {
+            // Generate a 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        res.status(200).json({ message: 'Login successful. Please verify your OTP.' });
+            // Store OTP and user data temporarily in the OTP collection
+            await OTP.create({ email, otp });
 
-        // Store OTP and user data temporarily in the OTP collection
-        await OTP.create({ email, otp });
+            // Send OTP email
+            await transporter.sendMail({
+                from: process.env.EMAIL,
+                to: email,
+                subject: 'Your OTP Code',
+                text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
+            });
 
-        // Send OTP email
-        await transporter.sendMail({
-            from: process.env.EMAIL,
-            to: email,
-            subject: 'Your OTP Code',
-            text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
-        });
-
-
+            // Only send response after all operations succeed
+            return res.status(200).json({ message: 'Login successful. Please verify your OTP.' });
+        } catch (emailError) {
+            console.error('Login error:', emailError);
+            // If email sending fails, we still need to respond to the client
+            return res.status(500).json({ message: 'Login successful but failed to send OTP. Please try again.' });
+        }
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ message: 'Internal server error' });
     }
 }
 
@@ -555,4 +578,4 @@ let handleContactUs = async (req, res) => {
     }
 };
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper, handleContactUs, handleUserDetails }; 
+module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper, handleContactUs, handleUserDetails };
