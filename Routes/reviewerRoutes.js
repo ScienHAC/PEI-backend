@@ -28,50 +28,68 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendInviteEmail = async (email, paperId) => {
-    // Generate a unique token
-    const token = crypto.randomBytes(20).toString('hex');
-    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    try {
+        // Generate a unique token
+        const token = crypto.randomBytes(20).toString('hex');
+        const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
-    await InviteToken.create({ token, email, paperId, expiresAt });
+        await InviteToken.create({ token, email, paperId, expiresAt });
 
-    const researchPaper = await ResearchPaper.findById(paperId);
-    if (!researchPaper) {
-        throw new Error('Research paper not found.');
+        const researchPaper = await ResearchPaper.findById(paperId);
+        if (!researchPaper) {
+            throw new Error('Research paper not found.');
+        }
+
+        // Get the correct file path
+        const filePath = path.join(__dirname, '..', 'uploads', researchPaper.filePath);
+
+        // Check if file exists before trying to attach it
+        if (!fs.existsSync(filePath)) {
+            throw new Error(`Research paper file not found at path: ${filePath}`);
+        }
+
+        const inviteLink = `${process.env.Client_URL}/reviewer/invite/${token}`;
+        const fileName = researchPaper.title + '.pdf';
+        const viewPaperLink = `${process.env.BackendUrl}/api/uploads/${researchPaper.filePath}`;
+
+        // Check file size - if over 5MB, use link instead of attachment
+        const fileSize = fs.statSync(filePath).size;
+        const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024; // 5MB
+
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Invitation to Join as a Reviewer',
+            html: `
+                <h2>You have been invited to join as a reviewer</h2>
+                <p>Please click the link below to view the research paper:</p>
+                <a href="${viewPaperLink}" target="_blank">View Paper: ${researchPaper.title}</a>
+                <p>Please click the link below to accept the invitation and set up your account:</p>
+                <a href="${inviteLink}" target="_blank">${inviteLink}</a>
+                <p>This link will expire in 7 days.</p>
+                ${fileSize > MAX_ATTACHMENT_SIZE ?
+                    '<p><b>Note:</b> The paper file is large and is available at the link above instead of as an attachment.</p>' :
+                    ''}
+            `
+        };
+
+        // Only attach the file if it's not too large
+        if (fileSize <= MAX_ATTACHMENT_SIZE) {
+            mailOptions.attachments = [
+                {
+                    filename: fileName,
+                    path: filePath,
+                    contentType: 'application/pdf'
+                }
+            ];
+        }
+
+        await transporter.sendMail(mailOptions);
+        console.log(`Invite email sent successfully to ${email}`);
+    } catch (error) {
+        console.error(`Failed to send invite email to ${email}:`, error);
+        // Log the error but don't throw it again since we're running asynchronously
     }
-
-    // Get the correct file path
-    const filePath = path.join(__dirname, '..', 'uploads', researchPaper.filePath);
-
-    // Check if file exists before trying to attach it
-    if (!fs.existsSync(filePath)) {
-        throw new Error(`Research paper file not found at path: ${filePath}`);
-    }
-
-    const inviteLink = `${process.env.Client_URL}/reviewer/invite/${token}`;
-    const fileName = researchPaper.title + '.pdf';
-
-    const mailOptions = {
-        from: process.env.EMAIL,
-        to: email,
-        subject: 'Invitation to Join as a Reviewer',
-        html: `
-            <h2>You have been invited to join as a reviewer</h2>
-            <p>Please click the link below to view the attached paper:</p>
-            <a href="${process.env.BackendUrl}/api/uploads/${researchPaper.filePath}" target="_blank">View Paper</a>
-            <p>Please click the link below to accept the invitation and set up your account:</p>
-            <a href="${inviteLink}" target="_blank">${inviteLink}</a>
-            <p>This link will expire in 7 days.</p>
-        `,
-        attachments: [
-            {
-                filename: fileName,
-                path: filePath, // Using local file path instead of URL
-                contentType: 'application/pdf'
-            }
-        ]
-    };
-
-    await transporter.sendMail(mailOptions);
 };
 
 // Invite route
@@ -110,17 +128,14 @@ router.post('/send-invite', restrictToLoggedInUserOnly, restrictToAdmin, async (
             });
         }
 
-        // Try to send the email
-        try {
-            await sendInviteEmail(email, paperId);
-            return res.status(200).json({ message: 'Invite sent successfully.' });
-        } catch (emailError) {
+        // Send success response immediately
+        res.status(200).json({ message: 'Invite processing initiated. The reviewer will be notified shortly.' });
+
+        // Then send email asynchronously
+        sendInviteEmail(email, paperId).catch(emailError => {
             console.error('Error sending email:', emailError);
-            return res.status(500).json({
-                message: 'Failed to send invite email. Please try again later.',
-                error: emailError.message
-            });
-        }
+            // Log error but don't send response since we already sent a response
+        });
     } catch (error) {
         console.error('Error sending invite:', error);
         return res.status(500).json({ message: 'Failed to send invite. Please try again later.' });
