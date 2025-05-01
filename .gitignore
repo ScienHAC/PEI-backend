@@ -4,4 +4,4 @@ node_modules/
 .idea/
 *.cache
 *.temp
-# uploads/
+uploads/
