@@ -76,7 +76,6 @@ router.post('/send-invite', restrictToLoggedInUserOnly, restrictToAdmin, async (
     }
 
     try {
-
         const existingAssignment = await ReviewerPaperAssignment.findOne({ email, paperId });
 
         if (existingAssignment) {
@@ -93,15 +92,21 @@ router.post('/send-invite', restrictToLoggedInUserOnly, restrictToAdmin, async (
             });
         }
 
+        // Now only send response *after* the email is sent
+        await sendInviteEmail(email, paperId);
+
         res.status(200).json({ message: 'Invite sent successfully.' });
 
-        // Send invite email to the provided email address
-        await sendInviteEmail(email, paperId);
     } catch (error) {
         console.error('Error sending invite:', error);
-        res.status(500).json({ message: 'Failed to send invite. Please try again later.' });
+
+        // Only respond if headers weren't already sent
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Failed to send invite. Please try again later.' });
+        }
     }
 });
+
 
 router.post('/check-status', restrictToLoggedInUserOnly, restrictToAdmin, async (req, res) => {
     const { paperId } = req.body;
