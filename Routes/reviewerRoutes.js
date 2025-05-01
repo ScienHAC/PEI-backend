@@ -11,6 +11,8 @@ const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
 const { getAssignedPapers, getComments, addComment } = require('../Controllers/reviewerController');
 const { addCommentToReviewer, getAllComments } = require('../Controllers/adminReviewerController');
 const restrictToAdmin = require('../Middleware/adminMiddleware');
+const fs = require('fs');
+const path = require('path');
 
 const router = express.Router();
 
@@ -28,18 +30,23 @@ const transporter = nodemailer.createTransport({
 const sendInviteEmail = async (email, paperId) => {
     // Generate a unique token
     const token = crypto.randomBytes(20).toString('hex');
-
     const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
 
     await InviteToken.create({ token, email, paperId, expiresAt });
 
     const researchPaper = await ResearchPaper.findById(paperId);
-
     if (!researchPaper) {
         throw new Error('Research paper not found.');
     }
 
-    const filePath = `${process.env.BackendUrl}/api/uploads/${researchPaper.filePath}`;
+    // Get the correct file path
+    const filePath = path.join(__dirname, '..', 'uploads', researchPaper.filePath);
+
+    // Check if file exists before trying to attach it
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Research paper file not found at path: ${filePath}`);
+    }
+
     const inviteLink = `${process.env.Client_URL}/reviewer/invite/${token}`;
     const fileName = researchPaper.title + '.pdf';
 
@@ -48,17 +55,17 @@ const sendInviteEmail = async (email, paperId) => {
         to: email,
         subject: 'Invitation to Join as a Reviewer',
         html: `
-                <h2>You have been invited to join as a reviewer</h2>
-                <p>Please click the link below to view the attached paper:</p>
-                <a href="${filePath}" target="_blank">View Paper</a>
-                <p>Please click the link below to accept the invitation and set up your account:</p>
-                <a href="${inviteLink}" target="_blank">${inviteLink}</a>
-                <p>This link will expire in 7 days.</p>
-            `,
+            <h2>You have been invited to join as a reviewer</h2>
+            <p>Please click the link below to view the attached paper:</p>
+            <a href="${process.env.BackendUrl}/api/uploads/${researchPaper.filePath}" target="_blank">View Paper</a>
+            <p>Please click the link below to accept the invitation and set up your account:</p>
+            <a href="${inviteLink}" target="_blank">${inviteLink}</a>
+            <p>This link will expire in 7 days.</p>
+        `,
         attachments: [
             {
                 filename: fileName,
-                path: filePath,
+                path: filePath, // Using local file path instead of URL
                 contentType: 'application/pdf'
             }
         ]
@@ -76,8 +83,19 @@ router.post('/send-invite', restrictToLoggedInUserOnly, restrictToAdmin, async (
     }
 
     try {
-        const existingAssignment = await ReviewerPaperAssignment.findOne({ email, paperId });
+        // First check if the paper exists
+        const researchPaper = await ResearchPaper.findById(paperId);
+        if (!researchPaper) {
+            return res.status(404).json({ message: 'Research paper not found.' });
+        }
 
+        // Check if the file exists before proceeding
+        const filePath = path.join(__dirname, '..', 'uploads', researchPaper.filePath);
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ message: 'Research paper file not found.' });
+        }
+
+        const existingAssignment = await ReviewerPaperAssignment.findOne({ email, paperId });
         if (existingAssignment) {
             return res.status(200).json({ message: 'Reviewer already invited for this paper.' });
         }
@@ -92,18 +110,20 @@ router.post('/send-invite', restrictToLoggedInUserOnly, restrictToAdmin, async (
             });
         }
 
-        // Now only send response *after* the email is sent
-        await sendInviteEmail(email, paperId);
-
-        res.status(200).json({ message: 'Invite sent successfully.' });
-
+        // Try to send the email
+        try {
+            await sendInviteEmail(email, paperId);
+            return res.status(200).json({ message: 'Invite sent successfully.' });
+        } catch (emailError) {
+            console.error('Error sending email:', emailError);
+            return res.status(500).json({
+                message: 'Failed to send invite email. Please try again later.',
+                error: emailError.message
+            });
+        }
     } catch (error) {
         console.error('Error sending invite:', error);
-
-        // Only respond if headers weren't already sent
-        if (!res.headersSent) {
-            res.status(500).json({ message: 'Failed to send invite. Please try again later.' });
-        }
+        return res.status(500).json({ message: 'Failed to send invite. Please try again later.' });
     }
 });
 
