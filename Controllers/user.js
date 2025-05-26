@@ -343,37 +343,59 @@ const handleResearchPaperSubmission = async (req, res) => {
             filePath: `pdf/${fileName}`
         });
 
-        // Prepare admin email with styled template
-        const adminEmailContent = createPaperSubmissionEmail(researchPaper, 'admin');
-        const mailOptions = {
-            from: process.env.EMAIL,
-            to: process.env.AdminEmail,
-            subject: `Research Paper Submitted: ${title}`,
-            html: adminEmailContent.html,
-            text: adminEmailContent.text,
-            attachments: [
-                {
-                    filename: `${fileName}`,
-                    path: `${process.env.BackendUrl}/api/uploads/pdf/${fileName}`,
-                    contentType: 'application/pdf'
+        // Send emails in background to avoid blocking response
+        setImmediate(async () => {
+            try {
+                // Prepare admin email with styled template
+                const adminEmailContent = createPaperSubmissionEmail(researchPaper, 'admin');
+
+                // Validate email content
+                if (adminEmailContent && adminEmailContent.html && adminEmailContent.text) {
+                    const mailOptions = {
+                        from: process.env.EMAIL,
+                        to: process.env.AdminEmail,
+                        subject: `Research Paper Submitted: ${title}`,
+                        html: adminEmailContent.html,
+                        text: adminEmailContent.text,
+                        attachments: [
+                            {
+                                filename: `${fileName}`,
+                                path: `${process.env.BackendUrl}/api/uploads/pdf/${fileName}`,
+                                contentType: 'application/pdf'
+                            }
+                        ]
+                    };
+
+                    await transporter.sendMail(mailOptions);
+                    console.log('Admin notification email sent successfully');
                 }
-            ]
-        };
 
-        // Send notification to author as well
-        const authorMailOptions = {
-            from: process.env.EMAIL,
-            to: email,
-            subject: 'Your Research Paper Submission',
-            html: createPaperSubmissionEmail(researchPaper, 'author')
-        };
+                // Send notification to author as well
+                const authorEmailContent = createPaperSubmissionEmail(researchPaper, 'author');
 
-        // Send emails
-        transporter.sendMail(mailOptions);
-        transporter.sendMail(authorMailOptions);
+                // Validate author email content
+                if (authorEmailContent && authorEmailContent.html && authorEmailContent.text) {
+                    const authorMailOptions = {
+                        from: process.env.EMAIL,
+                        to: email,
+                        subject: 'Your Research Paper Submission Confirmation',
+                        html: authorEmailContent.html,
+                        text: authorEmailContent.text
+                    };
+
+                    await transporter.sendMail(authorMailOptions);
+                    console.log('Author confirmation email sent successfully');
+                }
+
+            } catch (emailError) {
+                console.error('Error sending emails:', emailError);
+                // Don't throw the error since this is background processing
+            }
+        });
 
         console.log('Research paper submitted:', researchPaper);
         return res.status(201).json({ message: 'Research paper submitted successfully!', researchPaper });
+
     } catch (error) {
         console.error('Research paper submission error:', error);
         res.status(500).json({ message: 'Failed to submit the research paper.' });
