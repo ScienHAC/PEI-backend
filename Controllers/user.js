@@ -571,16 +571,55 @@ let handleContactUs = async (req, res) => {
     try {
         const { name, email, phone, subject, message } = req.body;
 
-        // ...existing validation code...
+        // Validate all required fields
+        if (!name || !email || !phone || !subject || !message) {
+            return res.status(400).json({ message: 'All fields are required.' });
+        }
 
-        const emailContent = createContactFormEmail({ name, email, phone, subject, message });
+        // Validate email format
+        if (!validator.isEmail(email)) {
+            return res.status(400).json({ message: 'Please enter a valid email address.' });
+        }
+
+        // Validate phone number (allowing different formats but requiring minimum digits)
+        if (!validator.isMobilePhone(phone, 'any', { strictMode: false }) &&
+            !validator.isLength(phone, { min: 8, max: 15 })) {
+            return res.status(400).json({ message: 'Please enter a valid phone number.' });
+        }
+
+        // Validate length of inputs
+        if (!validator.isLength(name, { min: 2, max: 100 })) {
+            return res.status(400).json({ message: 'Name must be between 2 and 100 characters.' });
+        }
+
+        if (!validator.isLength(subject, { min: 3, max: 200 })) {
+            return res.status(400).json({ message: 'Subject must be between 3 and 200 characters.' });
+        }
+
+        if (!validator.isLength(message, { min: 10, max: 5000 })) {
+            return res.status(400).json({ message: 'Message must be between 10 and 5000 characters.' });
+        }
+
+        // Sanitize inputs to prevent XSS
+        const sanitizedName = validator.escape(name);
+        const sanitizedSubject = validator.escape(subject);
+        const sanitizedMessage = validator.escape(message);
+
+        const emailContent = createContactFormEmail({
+            name: sanitizedName,
+            email,
+            phone,
+            subject: sanitizedSubject,
+            message: sanitizedMessage
+        });
+
         const mailOptions = {
             from: process.env.EMAIL,
             to: [
                 'support.itme@krmangalam.edu.in',
                 process.env.AdminEmail
             ],
-            subject: `Contact Form: ${subject}`,
+            subject: `Contact Form: ${sanitizedSubject}`,
             html: emailContent.html,
             text: emailContent.text
         };
