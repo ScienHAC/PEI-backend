@@ -5,6 +5,7 @@ const signupMiddleware = require('../Middleware/signupMiddleware');
 const loginMiddleware = require('../Middleware/loginMiddleware');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
 const restrictToAdmin = require('../Middleware/adminMiddleware');
+const { contactLimiter } = require('../Middleware/rateLimiter');
 const multer = require('multer');
 const path = require('path');
 const { handleResearchPaperSubmission } = require('../Controllers/user');
@@ -97,6 +98,6 @@ const convertDocToPdf = async (req, res, next) => {
 router.post('/submit-paper', upload.single('file'), convertDocToPdf, restrictToLoggedInUserOnly, handleResearchPaperSubmission);
 
 //contact us
-router.post('/contact-us', handleContactUs);
+router.post('/contact-us', contactLimiter, handleContactUs);
 
 module.exports = router;

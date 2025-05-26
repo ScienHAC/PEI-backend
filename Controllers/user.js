@@ -8,10 +8,11 @@ const ResearchPaper = require('../Models/ResearchPaper');
 const Admin = require('../Models/admin');
 const path = require('path');
 const fs = require('fs');
+const validator = require('validator');
 
 // Update the transporter configuration
 const transporter = nodemailer.createTransport({
-    host: process.env.smtpHost || 'smtp.example.com',
+    host: process.env.smtpHost || 'smtp.office365.com',
     port: parseInt(process.env.smtpPort) || 587,
     secure: false,
     auth: {
@@ -19,6 +20,7 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASSWORD,
     },
     tls: {
+        ciphers: 'SSLv3',
         rejectUnauthorized: false
     }
 });
@@ -556,22 +558,34 @@ let handleContactUs = async (req, res) => {
             return res.status(400).json({ message: 'All fields are required.' });
         }
 
+        // Email validation
+        if (!validator.isEmail(email)) {
+            return res.status(400).json({ message: 'Please provide a valid email address.' });
+        }
+
         const mailOptions = {
             from: process.env.EMAIL,
-            to: process.env.AdminEmail,
-            subject: `Contact Us Form Submission - ${subject}`,
-            text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\n\n${message}`,
+            to: [
+                'support.itme@krmangalam.edu.in',
+                process.env.AdminEmail
+            ],
+            subject: `Contact Form: ${subject}`,
+            html: `
+                <h3>New Contact Form Submission</h3>
+                <p><strong>Name:</strong> ${name}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Phone:</strong> ${phone}</p>
+                <p><strong>Subject:</strong> ${subject}</p>
+                <p><strong>Message:</strong></p>
+                <p>${message}</p>
+                <hr>
+                <p><small>Submitted at: ${new Date().toLocaleString()}</small></p>
+            `,
         };
 
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error sending email:', error);
-            } else {
-                console.log('Email sent:', info.response);
-            }
-        });
-
+        await transporter.sendMail(mailOptions);
         res.status(200).json({ message: 'Message sent successfully!' });
+
     } catch (error) {
         console.error('Contact Us error:', error);
         res.status(500).json({ message: 'Failed to send message.' });

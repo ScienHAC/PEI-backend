@@ -2,14 +2,18 @@ const ResearchPaper = require('../Models/ResearchPaper');
 const ReviewerPaperAssignment = require('../Models/reviewerPaperAssignment');
 const nodemailer = require('nodemailer');
 
-// Setup nodemailer transporter
+// Nodemailer setup for sending email
 const transporter = nodemailer.createTransport({
-    host: process.env.smtpHost,
-    port: 587,
+    host: process.env.smtpHost || 'smtp.office365.com',
+    port: parseInt(process.env.smtpPort) || 587,
     secure: false,
     auth: {
         user: process.env.EMAIL,
         pass: process.env.EMAIL_PASSWORD
+    },
+    tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: false
     }
 });
 
