@@ -1,6 +1,7 @@
 const ResearchPaper = require('../Models/ResearchPaper');
 const ReviewerPaperAssignment = require('../Models/reviewerPaperAssignment');
 const nodemailer = require('nodemailer');
+const { createPaperStatusEmail } = require('../utils/emailTemplates'); // Import the email template
 
 // Nodemailer setup for sending email
 const transporter = nodemailer.createTransport({
@@ -20,7 +21,7 @@ const transporter = nodemailer.createTransport({
 // Function to update research paper status
 exports.updatePaperStatus = async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, comments } = req.body; // Get comments if provided
 
     try {
         const updatedPaper = await ResearchPaper.findByIdAndUpdate(id, { status }, { new: true });
@@ -34,12 +35,35 @@ exports.updatePaperStatus = async (req, res) => {
             { new: true }
         );
 
-        // Send notification email
+        // Get all reviewer comments for this paper
+        const reviewerAssignments = await ReviewerPaperAssignment.find({
+            paperId: id,
+            comments: { $exists: true, $not: { $size: 0 } }
+        });
+
+        // Collect reviewer feedback if available
+        let reviewerFeedback = '';
+        if (reviewerAssignments && reviewerAssignments.length > 0) {
+            reviewerFeedback = reviewerAssignments
+                .flatMap(assignment => assignment.comments)
+                .filter(comment => comment.text && comment.text.trim() !== '')
+                .map(comment => `• ${comment.text}`)
+                .join('\n\n');
+        }
+
+        // Use the custom feedback from the request if provided, otherwise use collected comments
+        const feedbackToSend = comments || reviewerFeedback;
+
+        // Create a styled email using our template
+        const emailContent = createPaperStatusEmail(updatedPaper, status, feedbackToSend);
+
+        // Send notification email with HTML and text versions
         const mailOptions = {
             from: process.env.EMAIL,
             to: updatedPaper.email,
-            subject: `Research Paper ${status}`,
-            text: `Dear ${updatedPaper.author},\n\nYour research paper titled "${updatedPaper.title}" has been marked as ${status}.\n\nThank you!`
+            subject: `Research Paper ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            html: emailContent.html,
+            text: emailContent.text
         };
 
         transporter.sendMail(mailOptions, (error, info) => {

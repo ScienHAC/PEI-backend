@@ -5,12 +5,17 @@ const fileRoute = require('./Routes/fileRoutes');
 const researchRoutes = require('./Routes/researchRoutes');
 const reviewerRoute = require('./Routes/reviewerRoutes');
 const cors = require('cors');
+const path = require('path'); // Add this import
 require('dotenv').config();
 const app = express();
 app.use(cors({
     origin: process.env.Client_URL,
     credentials: true
 }));
+
+// Add static assets middleware for the logo and other assets
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
 app.use("/api/uploads/pdf", express.static("uploads/pdf"));
 app.use("/api/uploads/thumbnails", express.static("thumbnail"));
 app.use(cookieParser());

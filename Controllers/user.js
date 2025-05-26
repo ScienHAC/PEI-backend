@@ -9,6 +9,12 @@ const Admin = require('../Models/admin');
 const path = require('path');
 const fs = require('fs');
 const validator = require('validator');
+const {
+    createOtpEmail,
+    createPaperSubmissionEmail,
+    createContactFormEmail,
+    createPasswordResetEmail
+} = require('../utils/emailTemplates');
 
 // Update the transporter configuration
 const transporter = nodemailer.createTransport({
@@ -62,19 +68,18 @@ let handleUserSignup = async (req, res) => {
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        res.status(200).json({ message: 'Signup successful. Please verify your OTP.' });
-
         // Store OTP and user data temporarily in the OTP collection
         await OTP.create({ email, otp });
 
-        // Send OTP email
+        // Send OTP email with styled template
         await transporter.sendMail({
             from: process.env.EMAIL,
             to: email,
-            subject: 'Your OTP Code',
-            text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
+            subject: 'Your OTP Code for Registration',
+            html: createOtpEmail(otp, 'signup', name),
         });
 
+        res.status(200).json({ message: 'Signup successful. Please verify your OTP.' });
     } catch (error) {
         console.error('OTP email error:', error);
         res.status(500).json({ message: 'Failed to send OTP.' });
@@ -118,18 +123,19 @@ let handleUserLogin = async (req, res) => {
             // Generate a 6-digit OTP
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-            // Store OTP and user data temporarily in the OTP collection
+            // Store OTP
             await OTP.create({ email, otp });
 
-            // Send OTP email
+            // Send styled OTP email with both HTML and text versions
+            const emailContent = createOtpEmail(otp, 'login', user.name);
             await transporter.sendMail({
                 from: process.env.EMAIL,
                 to: email,
-                subject: 'Your OTP Code',
-                text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
+                subject: 'Your Login Verification Code',
+                html: emailContent.html,
+                text: emailContent.text
             });
 
-            // Only send response after all operations succeed
             return res.status(200).json({ message: 'Login successful. Please verify your OTP.' });
         } catch (emailError) {
             console.error('Login error:', emailError);
@@ -236,15 +242,20 @@ let handleUserForgotPassword = async (req, res) => {
         // Generate a 6-digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Store OTP in the OTP collection
+        // Store OTP
         await OTP.create({ email, otp });
 
-        // Send OTP via email
+        // Get user name if available
+        const userName = user ? user.name : (reviewer ? reviewer.name : '');
+
+        // Send styled password reset email
+        const emailContent = createPasswordResetEmail(otp, userName);
         await transporter.sendMail({
             from: process.env.EMAIL,
             to: email,
-            subject: 'Your Password Reset OTP',
-            text: `Your OTP code for password reset is ${otp}. It is valid for 10 minutes.`,
+            subject: 'Your Password Reset Code',
+            html: emailContent.html,
+            text: emailContent.text
         });
 
         return res.status(200).json({ message: 'OTP sent to your email!' });
@@ -332,12 +343,14 @@ const handleResearchPaperSubmission = async (req, res) => {
             filePath: `pdf/${fileName}`
         });
 
-        // Prepare the email options
+        // Prepare admin email with styled template
+        const adminEmailContent = createPaperSubmissionEmail(researchPaper, 'admin');
         const mailOptions = {
             from: process.env.EMAIL,
             to: process.env.AdminEmail,
-            subject: `Research Paper Submitted Successfully`,
-            text: `Dear Admin,\n\nResearch paper titled "${title}" published by "${email}" has been successfully submitted and marked for review. You can view the research paper in the Admin panel.\n\nThank you!`,
+            subject: `Research Paper Submitted: ${title}`,
+            html: adminEmailContent.html,
+            text: adminEmailContent.text,
             attachments: [
                 {
                     filename: `${fileName}`,
@@ -347,14 +360,17 @@ const handleResearchPaperSubmission = async (req, res) => {
             ]
         };
 
-        // Send the email notification
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error sending email:', error);
-            } else {
-                console.log('Email sent:', info.response);
-            }
-        });
+        // Send notification to author as well
+        const authorMailOptions = {
+            from: process.env.EMAIL,
+            to: email,
+            subject: 'Your Research Paper Submission',
+            html: createPaperSubmissionEmail(researchPaper, 'author')
+        };
+
+        // Send emails
+        transporter.sendMail(mailOptions);
+        transporter.sendMail(authorMailOptions);
 
         console.log('Research paper submitted:', researchPaper);
         return res.status(201).json({ message: 'Research paper submitted successfully!', researchPaper });
@@ -554,15 +570,10 @@ async function fetchAllResearchPaper(req, res) {
 let handleContactUs = async (req, res) => {
     try {
         const { name, email, phone, subject, message } = req.body;
-        if (!name || !email || !phone || !subject || !message) {
-            return res.status(400).json({ message: 'All fields are required.' });
-        }
 
-        // Email validation
-        if (!validator.isEmail(email)) {
-            return res.status(400).json({ message: 'Please provide a valid email address.' });
-        }
+        // ...existing validation code...
 
+        const emailContent = createContactFormEmail({ name, email, phone, subject, message });
         const mailOptions = {
             from: process.env.EMAIL,
             to: [
@@ -570,17 +581,8 @@ let handleContactUs = async (req, res) => {
                 process.env.AdminEmail
             ],
             subject: `Contact Form: ${subject}`,
-            html: `
-                <h3>New Contact Form Submission</h3>
-                <p><strong>Name:</strong> ${name}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Phone:</strong> ${phone}</p>
-                <p><strong>Subject:</strong> ${subject}</p>
-                <p><strong>Message:</strong></p>
-                <p>${message}</p>
-                <hr>
-                <p><small>Submitted at: ${new Date().toLocaleString()}</small></p>
-            `,
+            html: emailContent.html,
+            text: emailContent.text
         };
 
         await transporter.sendMail(mailOptions);

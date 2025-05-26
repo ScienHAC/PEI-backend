@@ -13,6 +13,7 @@ const { addCommentToReviewer, getAllComments } = require('../Controllers/adminRe
 const restrictToAdmin = require('../Middleware/adminMiddleware');
 const fs = require('fs');
 const path = require('path');
+const { createEmailTemplate } = require('../utils/emailTemplates');
 
 const router = express.Router();
 
@@ -60,21 +61,44 @@ const sendInviteEmail = async (email, paperId) => {
         const fileSize = fs.statSync(filePath).size;
         const MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024; // 5MB
 
+        // Create styled HTML email content
+        const content = `
+            <p>You have been invited to join as a reviewer for a research paper.</p>
+            
+            <div style="margin: 25px 0; padding: 15px; border-left: 4px solid #003366; background-color: #f5f5f5;">
+                <h3 style="margin-top: 0; color: #003366;">Paper Details:</h3>
+                <p><strong>Title:</strong> ${researchPaper.title}</p>
+                <p><strong>Author:</strong> ${researchPaper.author}</p>
+                <p><strong>Article Type:</strong> ${researchPaper.articleType || 'Not specified'}</p>
+                <p><strong>Submission Date:</strong> ${new Date(researchPaper.createdAt).toLocaleDateString()}</p>
+            </div>
+            
+            <p>Your expertise would be valuable in evaluating this submission.</p>
+            
+            <p>You can view the paper by clicking the button below:</p>
+            <a href="${viewPaperLink}" style="display: inline-block; background-color: #003366; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; margin: 15px 0; font-weight: bold;">View Research Paper</a>
+            
+            <p>To accept this invitation and set up your reviewer account, please click the button below:</p>
+            <a href="${inviteLink}" style="display: inline-block; background-color: #28a745; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; margin: 15px 0; font-weight: bold;">Accept Invitation</a>
+            
+            <p><strong>Note:</strong> This invitation link will expire in 7 days.</p>
+            ${fileSize > MAX_ATTACHMENT_SIZE ?
+                '<p><em>The paper file is large and is available via the "View Research Paper" button instead of as an attachment.</em></p>' :
+                ''}
+            <hr>
+            <p>If you're unable to review this paper or have any questions, please contact us directly.</p>
+        `;
+
+        // Use our email template system
+        const emailContent = createEmailTemplate('Invitation to Review Research Paper', content);
+
+        // Prepare email options
         const mailOptions = {
             from: process.env.EMAIL,
             to: email,
-            subject: 'Invitation to Join as a Reviewer',
-            html: `
-                <h2>You have been invited to join as a reviewer</h2>
-                <p>Please click the link below to view the research paper:</p>
-                <a href="${viewPaperLink}" target="_blank">View Paper: ${researchPaper.title}</a>
-                <p>Please click the link below to accept the invitation and set up your account:</p>
-                <a href="${inviteLink}" target="_blank">${inviteLink}</a>
-                <p>This link will expire in 7 days.</p>
-                ${fileSize > MAX_ATTACHMENT_SIZE ?
-                    '<p><b>Note:</b> The paper file is large and is available at the link above instead of as an attachment.</p>' :
-                    ''}
-            `
+            subject: 'Invitation to Review Research Paper',
+            html: emailContent.html,
+            text: emailContent.text
         };
 
         // Only attach the file if it's not too large
