@@ -1,6 +1,6 @@
 const express = require('express');
 const OTP = require('../Models/otp'); // Import the OTP model
-const { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleContactUs } = require('../Controllers/user');
+const { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleContactUs, handleResendOTP } = require('../Controllers/user');
 const signupMiddleware = require('../Middleware/signupMiddleware');
 const loginMiddleware = require('../Middleware/loginMiddleware');
 const { restrictToLoggedInUserOnly } = require('../Middleware/auth');
@@ -99,5 +99,9 @@ router.post('/submit-paper', upload.single('file'), convertDocToPdf, restrictToL
 
 //contact us
 router.post('/contact-us', contactLimiter, handleContactUs);
+// Resend OTP routes
+router.post('/resend-otp-signup', handleResendOTP);
+router.post('/resend-otp-login', handleResendOTP);
+router.post('/resend-otp-forgot', handleResendOTP);
 
 module.exports = router;

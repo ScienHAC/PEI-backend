@@ -31,6 +31,12 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Helper function to get latest OTP
+const getLatestOTP = async (email) => {
+    return await OTP.findOne({ email }).sort({ createdAt: -1 }).limit(1);
+};
+
+
 // Add this function to verify mail configuration at startup
 function verifyMailConfig() {
     transporter.verify(function (error, success) {
@@ -153,12 +159,12 @@ let handleUserOtpSignup = async (req, res) => {
     const { otp } = req.body;
     const { name, email, password, contact } = req.tempUser;
     try {
-        const otpRecord = await OTP.findOne({ email, otp });
+        // Get latest OTP instead of any OTP
+        const otpRecord = await getLatestOTP(email);
 
-        if (!otpRecord) {
+        if (!otpRecord || otpRecord.otp !== otp) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
-
 
         const newUserDoc = await User.create({
             name,
@@ -167,12 +173,13 @@ let handleUserOtpSignup = async (req, res) => {
             contact,
         });
 
-        await OTP.deleteOne({ _id: otpRecord._id });
+        // Delete ALL OTP records for this email after successful verification
+        await OTP.deleteMany({ email });
 
         const token = setUser(newUserDoc);
 
         res.cookie('_auth_token_pei', token, {
-            httpOnly: true, secure: true, sameSite: 'None', maxAge: 7 * 24 * 60 * 60 * 1000 //localhost put secure true is samesite none
+            httpOnly: true, secure: true, sameSite: 'None', maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
         return res.status(200).json({ message: 'OTP verified! User registered successfully.' });
@@ -182,25 +189,27 @@ let handleUserOtpSignup = async (req, res) => {
     }
 }
 
-
-
 let handleUserOtpLogin = async (req, res) => {
     const { otp } = req.body;
     const { email } = req.Client_User;
     try {
-        const otpRecord = await OTP.findOne({ email, otp });
-        if (!otpRecord) {
+        // Get latest OTP instead of any OTP
+        const otpRecord = await getLatestOTP(email);
+
+        if (!otpRecord || otpRecord.otp !== otp) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
+
         const user = await User.findOne({ email }) || await Reviewer.findOne({ email });
         console.log("Login Successfully");
 
-        await OTP.deleteOne({ _id: otpRecord._id });
+        // Delete ALL OTP records for this email after successful verification
+        await OTP.deleteMany({ email });
 
         const token = setUser(user);
 
         res.cookie('_auth_token_pei', token, {
-            httpOnly: true, secure: true, sameSite: 'None', maxAge: 7 * 24 * 60 * 60 * 1000 //localhost put secure true is samesite none
+            httpOnly: true, secure: true, sameSite: 'None', maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
         return res.status(200).json({ message: 'OTP verified! User Logged successfully.' });
@@ -269,9 +278,10 @@ let handleUserResetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     try {
-        // Verify OTP
-        const otpRecord = await OTP.findOne({ email, otp });
-        if (!otpRecord) {
+        // Get latest OTP instead of any OTP
+        const otpRecord = await getLatestOTP(email);
+
+        if (!otpRecord || otpRecord.otp !== otp) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
 
@@ -290,8 +300,8 @@ let handleUserResetPassword = async (req, res) => {
             return res.status(404).json({ message: 'User not found.' });
         }
 
-        // Delete OTP record
-        await OTP.deleteOne({ _id: otpRecord._id });
+        // Delete ALL OTP records for this email after successful verification
+        await OTP.deleteMany({ email });
 
         return res.status(200).json({ message: 'Password reset successful!' });
     } catch (error) {
@@ -655,4 +665,93 @@ let handleContactUs = async (req, res) => {
     }
 };
 
-module.exports = { handleUserSignup, handleUserLogin, handleUserOtpSignup, handleUserOtpLogin, handleUserStatus, handleUserLogout, handleAdminStatus, handleUserForgotPassword, handleUserResetPassword, handleResearchPaperSubmission, getUserResearchPapers, handleUpdateUser, updateResearchPaper, fetchAllResearchPaper, handleContactUs, handleUserDetails };
+// Add this new function
+const handleResendOTP = async (req, res) => {
+    try {
+        const { email, type } = req.body; // type: 'signup', 'login', 'forgot'
+
+        if (!email || !type) {
+            return res.status(400).json({ message: 'Email and type are required.' });
+        }
+
+        // Check if user exists based on type
+        if (type === 'signup') {
+            const existingUser = await User.findOne({ email });
+            const existingReviewer = await Reviewer.findOne({ email });
+            if (existingUser || existingReviewer) {
+                return res.status(400).json({ message: 'User already exists. Please login instead.' });
+            }
+        } else if (type === 'login' || type === 'forgot') {
+            const user = await User.findOne({ email });
+            const reviewer = await Reviewer.findOne({ email });
+            if (!user && !reviewer) {
+                return res.status(404).json({ message: 'User not found.' });
+            }
+        }
+
+        // Generate new OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Store new OTP (old ones will be ignored due to latest OTP validation)
+        await OTP.create({ email, otp });
+
+        // Get user name if available
+        const user = await User.findOne({ email });
+        const reviewer = await Reviewer.findOne({ email });
+        const userName = user ? user.name : (reviewer ? reviewer.name : '');
+
+        // Send email based on type
+        let emailContent, subject;
+
+        switch (type) {
+            case 'signup':
+                emailContent = createOtpEmail(otp, 'signup', userName);
+                subject = 'Your OTP Code for Registration';
+                break;
+            case 'login':
+                emailContent = createOtpEmail(otp, 'login', userName);
+                subject = 'Your Login Verification Code';
+                break;
+            case 'forgot':
+                emailContent = createPasswordResetEmail(otp, userName);
+                subject = 'Your Password Reset Code';
+                break;
+            default:
+                return res.status(400).json({ message: 'Invalid OTP type.' });
+        }
+
+        await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: email,
+            subject: subject,
+            html: emailContent.html,
+            text: emailContent.text
+        });
+
+        return res.status(200).json({ message: 'OTP resent successfully!' });
+
+    } catch (error) {
+        console.error('Resend OTP error:', error);
+        res.status(500).json({ message: 'Failed to resend OTP. Please try again.' });
+    }
+};
+
+module.exports = {
+    handleUserSignup,
+    handleUserLogin,
+    handleUserOtpSignup,
+    handleUserOtpLogin,
+    handleUserStatus,
+    handleUserLogout,
+    handleAdminStatus,
+    handleUserForgotPassword,
+    handleUserResetPassword,
+    handleResearchPaperSubmission,
+    getUserResearchPapers,
+    handleUpdateUser,
+    updateResearchPaper,
+    fetchAllResearchPaper,
+    handleContactUs,
+    handleUserDetails,
+    handleResendOTP
+};
